@@ -72,12 +72,32 @@ function allocationShortName(name,groupName){
  if(!group||!full)return full;
  const words=group.split(/\s+/);
  const last=words[words.length-1]||'';
- const stem=/^\d+(?:[.,]\d+)?(?:ml|l|g|kg|oz)$/i.test(last)?words.slice(0,-1).join(' '):group;
- if(!stem||full.slice(0,stem.length).toLowerCase()!==stem.toLowerCase())return full;
- const boundary=full.slice(stem.length,stem.length+1);
- if(boundary&&!/[\s:–—-]/.test(boundary))return full;
- const shorter=full.slice(stem.length).replace(/^[\s:–—-]+/,'').trim();
- return shorter||full;
+ const hasSize=/^\d+(?:[.,]\d+)?(?:ml|l|g|kg|oz)$/i.test(last);
+ const stem=hasSize?words.slice(0,-1).join(' '):group;
+ if(!stem)return full;
+ // Standard case: the product begins with its group wording.
+ if(full.slice(0,stem.length).toLowerCase()===stem.toLowerCase()){
+   const boundary=full.slice(stem.length,stem.length+1);
+   if(!boundary||/[\s:–—-]/.test(boundary)){
+     const short=full.slice(stem.length).replace(/^[\s:–—-]+/,'').trim();
+     if(short)return short;
+   }
+ }
+ // Some variants insert their flavor inside the group phrase:
+ // "Kirisu Plain Yogurt 135g" belongs to "Kirisu Yogurt 135g".
+ // Remove shared brand/category words, retain flavor and product size.
+ const groupCore=hasSize?words.slice(0,-1):words;
+ const parts=full.split(/\s+/);
+ if(groupCore.length<2||parts[0].toLowerCase()!==groupCore[0].toLowerCase())return full;
+ const rest=parts.slice(1);
+ let removed=0;
+ for(const shared of groupCore.slice(1)){
+   const idx=rest.findIndex(x=>x.toLowerCase()===shared.toLowerCase());
+   if(idx<0)return full;
+   rest.splice(idx,1);removed++;
+ }
+ const shortened=rest.join(' ').trim();
+ return removed&&shortened?shortened:full;
 }
 function allocationBaseUnit(item){
  const product=products.find(p=>String(p.code).toUpperCase()===String(item.code||'').toUpperCase());
