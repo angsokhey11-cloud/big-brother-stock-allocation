@@ -98,7 +98,7 @@ function allocationGroupedItems(items){
      const name=section.name?allocationShortName(item.name,section.name):String(item.name||item.code||'');
      const unit=allocationBaseUnit(item),boxes=Number(item.boxes)||0,pcs=Number(item.pcs??item.qty)||0,total=Number(item.qty)||0;
      const unitName=String(item.sellingUnit||unitFor(String(item.code||''))?.sellingUnitName||'Box').trim();
-     const detail=boxes?boxes+' '+unitName+' + '+pcs+' '+unit+' = '+total+' '+unit:pcs+' '+unit;
+     const detail=boxes?(pcs>0?boxes+' '+unitName+' + '+pcs+' '+unit+' = '+total+' '+unit:boxes+' '+unitName+' = '+total+' '+unit):pcs+' '+unit;
      lines.push((++no)+'. '+name+': '+detail);
    }
  }
