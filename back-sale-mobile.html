@@ -74,8 +74,8 @@ function render(){
   const product=products.find(p=>p.code===code),q=normalized(value),selling=units.get(code),base=product?.unit||'PCS';
   return '<div class="item itemgrid">'+
    '<div class="return-name"><b>'+(i+1)+'. '+esc(product?.name||code)+'</b></div>'+
-   '<label class="return-source" title="'+(selling?esc(selling.name)+' ×'+selling.baseQty:'No box unit')+'"><span>'+(selling?esc(selling.name)+' ×'+selling.baseQty:'CTN')+'</span><input aria-label="Carton quantity for '+esc(product?.name||code)+'" type="number" min="0" step="1" data-boxes="'+esc(code)+'" value="'+q.boxes+'" '+(selling?'':'disabled')+'></label>'+
-   '<label class="return-source"><span>'+esc(base)+'</span><input aria-label="'+esc(base)+' quantity for '+esc(product?.name||code)+'" type="number" min="0" step="1" data-qty="'+esc(code)+'" value="'+q.pcs+'"></label>'+
+   '<label class="return-source" title="'+(selling?esc(selling.name)+' ×'+selling.baseQty:'No box unit')+'"><span>'+(selling?esc(selling.name)+' ×'+selling.baseQty:'CTN')+'</span><input aria-label="Carton quantity for '+esc(product?.name||code)+'" type="number" min="0" step="1" data-boxes="'+esc(code)+'" value="'+(q.boxes>0?q.boxes:'')+'" '+(selling?'':'disabled')+'></label>'+
+   '<label class="return-source"><span>'+esc(base)+'</span><input aria-label="'+esc(base)+' quantity for '+esc(product?.name||code)+'" type="number" min="0" step="1" data-qty="'+esc(code)+'" value="'+(q.pcs>0?q.pcs:'')+'"></label>'+
    '<b class="return-total">'+totalFor(code,q)+' '+esc(base)+'</b>'+
    '<button class="return-remove" aria-label="Remove '+esc(product?.name||code)+'" data-remove="'+esc(code)+'">×</button>'+
    '</div>';
