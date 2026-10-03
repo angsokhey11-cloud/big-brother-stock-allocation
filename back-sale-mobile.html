@@ -43,7 +43,7 @@ function backSaleGroupedLines(items){
  for(const key of order){
    const section=sections.get(key);
    if(section.heading)output.push('*'+section.heading);
-   else if(output.length)output.push('', '────────────');
+   else if(output.length)output.push('────────────');
    for(const item of section.items){
      const name=section.heading?backSaleShortName(item.name,section.heading):String(item.name||item.code);
      const unit=products.find(p=>String(p.code).toUpperCase()===String(item.code||'').toUpperCase())?.unit||item.unit||'PCS';
