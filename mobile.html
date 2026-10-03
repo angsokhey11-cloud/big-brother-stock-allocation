@@ -114,7 +114,7 @@ function allocationGroupedItems(items){
  for(const key of order){
    const section=sections.get(key);
    if(section.name)lines.push('*'+section.name);
-   else if(lines.length)lines.push('', '────────────');
+   else if(lines.length)lines.push('────────────');
    for(const item of section.items){
      const name=section.name?allocationShortName(item.name,section.name):String(item.name||item.code||'');
      const unit=allocationBaseUnit(item),boxes=Number(item.boxes)||0,pcs=Number(item.pcs??item.qty)||0,total=Number(item.qty)||0;
