@@ -43,8 +43,8 @@ function renderLines(){
    return '<div class="line"><div class="linegrid">'+
      '<div class="line-name"><b>'+(i+1)+'. '+esc(p?.name||code)+'</b></div>'+
      '<div class="line-source"><label>'+(u?esc(u.sellingUnitName)+' (×'+u.baseQty+')':'CTN')+'</label>'+
-       '<input aria-label="Carton quantity for '+esc(p?.name||code)+'" data-code="'+esc(code)+'" data-field="boxes" type="number" min="0" step="1" value="'+n(v.boxes)+'" '+(u?'':'disabled')+'></div>'+
-     '<div class="line-source"><label>PCS</label><input aria-label="Piece quantity for '+esc(p?.name||code)+'" data-code="'+esc(code)+'" data-field="qty" type="number" min="0" step="1" value="'+n(v.qty)+'"></div>'+
+       '<input aria-label="Carton quantity for '+esc(p?.name||code)+'" data-code="'+esc(code)+'" data-field="boxes" type="number" min="0" step="1" value="'+(n(v.boxes)>0?n(v.boxes):'')+'" '+(u?'':'disabled')+'></div>'+
+     '<div class="line-source"><label>PCS</label><input aria-label="Piece quantity for '+esc(p?.name||code)+'" data-code="'+esc(code)+'" data-field="qty" type="number" min="0" step="1" value="'+(n(v.qty)>0?n(v.qty):'')+'"></div>'+
      '<div class="line-total" aria-label="Total pieces"><b>'+total+' PCS</b></div>'+
      '<button class="line-remove" aria-label="Remove '+esc(p?.name||code)+'" data-remove="'+esc(code)+'">×</button>'+
      '</div></div>';
