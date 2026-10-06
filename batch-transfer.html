@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>BIG BROTHER — Batch Transfer</title>
+<style>
+:root{--navy:#173f77;--blue:#205493;--bg:#eef3f8;--line:#d7e2ee;--muted:#6d8096;--ok:#13704b;--bad:#b53232;--purple:#6d46a8}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:var(--bg);color:#17314c}
+.wrap{max-width:1180px;margin:0 auto;padding:18px}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:13px;box-shadow:0 6px 22px rgba(23,63,119,.05)}
+h1{margin:0;color:var(--navy);font-size:24px}h2{margin:0 0 12px;color:var(--navy);font-size:16px}.sub{margin-top:5px;color:var(--muted);font-size:12px;font-weight:700}
+.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.status{margin-top:10px;padding:9px 11px;border-radius:9px;background:#f4f8fc;color:#55708d;font-size:11px;font-weight:800}.status.error{background:#fff0f0;color:var(--bad)}.status.ok{background:#eefaf4;color:var(--ok)}
+.tabs,.actions,.row{display:flex;gap:8px;flex-wrap:wrap}.tabs{margin-bottom:13px}
+button{border:1px solid #cbd9e7;border-radius:9px;background:#fff;color:var(--navy);padding:9px 12px;font-weight:900;cursor:pointer}.primary{border-color:var(--navy);background:var(--navy);color:#fff}.purple{border-color:var(--purple);background:var(--purple);color:#fff}button:disabled{opacity:.55;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.field label{display:block;margin-bottom:5px;color:#5a6f86;font-size:9px;font-weight:1000;text-transform:uppercase;letter-spacing:.03em}.field input,.field select{width:100%;min-height:40px;border:1px solid #cbd9e7;border-radius:8px;background:#fff;padding:8px 10px;color:#17314c;font:inherit;font-size:12px}.field input[readonly]{background:#f3f6f9;color:#62768a}
+.source-info{margin-top:10px;padding:10px 12px;border:1px solid #dcd4ef;border-radius:10px;background:#faf8ff;color:#624c83;font-size:11px;font-weight:800;line-height:1.45}
+.products-head{display:flex;justify-content:space-between;gap:10px;align-items:center}.lines{margin-top:10px}.line{display:grid;grid-template-columns:minmax(220px,1.6fr) 120px 120px 110px 36px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #e7edf4}.line:last-child{border-bottom:0}.product-name{min-width:0}.product-name strong{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.product-name small{color:var(--muted);font-size:9px}.line label{display:block;color:#76899d;font-size:7px;font-weight:1000;text-transform:uppercase;margin-bottom:3px}.line input{width:100%;height:36px;border:1px solid #cbd9e7;border-radius:8px;padding:6px 8px;text-align:center;font-weight:900}.total{font-size:12px;font-weight:1000;color:var(--ok);text-align:right}.remove{width:34px;height:34px;padding:0;color:#b53232;background:#fff2f2;border-color:#f0caca}
+.empty{padding:18px;text-align:center;color:#8192a4;font-size:11px;font-weight:800}
+.history-item{border:1px solid #dfe7ef;border-radius:10px;padding:12px;margin-bottom:9px}.history-item b{color:var(--navy)}.history-item p{margin:5px 0;color:#657b91;font-size:10px;font-weight:700}
+.hidden{display:none!important}
+.overlay{position:fixed;z-index:5000;inset:0;background:rgba(12,32,54,.45);display:flex;align-items:flex-end;justify-content:center;padding:10px}.sheet{width:min(760px,100%);max-height:82vh;display:flex;flex-direction:column;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(10,30,50,.25)}.sheet-head{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #e5ecf3}.sheet-head strong{color:var(--navy)}.search{padding:10px;border-bottom:1px solid #edf1f5}.search input{width:100%;height:40px;border:1px solid #cbd9e7;border-radius:9px;padding:8px 10px}.picker-list{overflow:auto;padding:0 10px 10px}.pick{width:100%;display:flex;justify-content:space-between;gap:8px;border:0;border-bottom:1px solid #e7edf4;border-radius:0;padding:10px 2px;text-align:left}.pick span{color:var(--muted);font-size:9px;font-weight:800}.foot-note{margin-top:8px;color:#6e8195;font-size:9px;font-weight:700;line-height:1.4}
+@media(max-width:760px){.wrap{padding:8px}.card{padding:11px;border-radius:11px}h1{font-size:20px}.top{display:block}.top button{margin-top:8px;width:100%}.grid{grid-template-columns:1fr 1fr}.line{grid-template-columns:minmax(0,1fr) 78px 78px 70px 30px;gap:5px}.line input{height:34px;padding:4px;font-size:11px}.product-name strong{font-size:10px}.product-name small{font-size:7px}.total{font-size:10px}.actions button{flex:1}.products-head{align-items:stretch}.products-head button{min-width:120px}}
+@media(max-width:480px){.grid{grid-template-columns:1fr}.line{grid-template-columns:minmax(0,1fr) 72px 72px 60px 28px}.line label{font-size:6px}.sheet{max-height:88vh}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="card">
+    <div class="top"><div><h1>🔀 BIG BROTHER — Batch Transfer</h1><div class="sub">Planning / prefill only. No physical stock moves until Batch to Salesman saves the new Batch.</div></div><button id="refresh">↻ Refresh Live Batches</button></div>
+    <div id="status" class="status">Connecting…</div>
+  </section>
+  <div class="tabs"><button id="tabTransfer" class="primary">Batch Transfer</button><button id="tabHistory">Transfer History</button></div>
+
+  <main id="transfer">
+    <section class="card">
+      <h2>Transfer Information</h2>
+      <div class="grid">
+        <div class="field"><label>Inventory Controller</label><input id="controller" readonly></div>
+        <div class="field"><label>Source Open Batch</label><select id="sourceBatch"><option value="">Loading…</option></select></div>
+        <div class="field"><label>Transfer Date</label><input id="date" type="date"></div>
+        <div class="field"><label>New Salesman</label><select id="salesman"><option value="">Select Salesman</option></select></div>
+        <div class="field"><label>New Driver 1</label><select id="driver1"><option value="">Select Driver 1</option></select></div>
+        <div class="field"><label>New Driver 2 (Optional)</label><select id="driver2"><option value="">No Driver 2</option></select></div>
+        <div class="field"><label>New Batch Location</label><select id="location"><option value="">Select Location</option></select></div>
+      </div>
+      <div id="sourceInfo" class="source-info">Select an Open Batch to plan a transfer.</div>
+    </section>
+
+    <section class="card">
+      <div class="products-head"><div><h2 style="margin:0">Transfer Products</h2><div class="sub">Enter total planned Qty only. Purchased / Zero-Cost is decided later in Batch to Salesman.</div></div><button id="add" class="purple">＋ Add Product</button></div>
+      <div id="lines" class="lines"><div class="empty">Select a Source Batch first.</div></div>
+      <div class="actions" style="margin-top:12px"><button id="clear">Clear</button><button id="save" class="primary">Save Batch Transfer Prefill</button></div>
+      <div class="foot-note">Saving creates a one-time shared prefill and local history only. It does not reserve stock. Final Save in Batch to Salesman always checks the live Source Batch balance again.</div>
+    </section>
+  </main>
+
+  <main id="history" class="card hidden">
+    <h2>Batch Transfer History</h2>
+    <div class="sub" style="margin-bottom:10px">History is saved on this browser/device. Editing reuses the same shared prefill ID.</div>
+    <div id="records"></div>
+  </main>
+</div>
+
+<div id="picker" class="overlay hidden">
+  <div class="sheet">
+    <div class="sheet-head"><strong>Select Product from Source Batch</strong><button id="closePicker">×</button></div>
+    <div class="search"><input id="search" placeholder="Search product name or code" autocomplete="off"></div>
+    <div id="productList" class="picker-list"></div>
+  </div>
+</div>
+
+<script>
+(()=>{'use strict';
+const URL='https://sjfhlaclgmkwwofzstok.supabase.co',KEY='sb_publishable_w762jR65CWwlO30fKQsYOw_6L9grx8S',SESSION='BB_SUPABASE_DEV_SESSION_V1',STORE='BB_BATCH_TRANSFER_LOCAL_V1';
+const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),str=v=>String(v??'').trim(),num=v=>Math.max(0,Number(v)||0);
+let refs=null,profile=null,batches=[],products=[],staff=[],locations=[],selected={},editing=null,units=new Map();
+
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function local(){try{return JSON.parse(localStorage.getItem(STORE)||'[]')}catch{return[]}}
+function status(text,bad=false){$('status').textContent=text;$('status').className='status '+(bad?'error':'ok')}
+async function session(){let s=JSON.parse(localStorage.getItem(SESSION)||'null');if(!s?.access_token)throw Error('Sign in to BIG BROTHER first.');if(s.expires_at&&Number(s.expires_at)<Date.now()/1000+45){const r=await fetch(URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});if(!r.ok)throw Error('Session expired.');s=await r.json();s.expires_at=Math.floor(Date.now()/1000)+Number(s.expires_in||0);localStorage.setItem(SESSION,JSON.stringify(s))}return s}
+async function rpc(name,args={}){const s=await session(),r=await fetch(URL+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify(args),cache:'no-store'}),d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.message||'Database unavailable');return d}
+async function shared(action,record){const s=await session(),body=action==='save'?{action,transfer:record}:{action,allocation_id:record.id},r=await fetch(URL+'/functions/v1/bb-batch-transfer-prefill',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json().catch(()=>({}));if(!r.ok||!d.success)throw Error(d.message||'Shared prefill failed');return d}
+function opts(id,rows,empty){const e=$(id),old=e.value;e.innerHTML='<option value="">'+esc(empty)+'</option>'+rows.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join('');if(rows.some(x=>x.id===old))e.value=old}
+function batchItemRows(b){return Array.isArray(b?.items)?b.items:(Array.isArray(b?.exactItems)?b.exactItems:[])}
+function physical(row){return num(row?.remainingQty!==undefined?row.remainingQty:row?.pendingQty)}
+function productFor(code){return products.find(p=>p.code===code)}
+function sourceBatch(){return batches.find(b=>b.batchId===$('sourceBatch').value)||null}
+function lineTotal(code,v){const u=units.get(code),base=u?.baseQty||1;return num(v.pcs)+num(v.boxes)*base}
+
+async function loadUnit(code){if(units.has(code))return;try{const d=await rpc('bb_sales_product_selling_units',{p_product_code:code,p_group_code:null});const u=(d.units||[]).filter(x=>Number(x.baseQty)>1).sort((a,b)=>(Number(a.sortOrder)||10)-(Number(b.sortOrder)||10))[0];units.set(code,u?{baseQty:Number(u.baseQty)||1,name:str(u.sellingUnitName)||'Box'}:null);renderLines()}catch(_){units.set(code,null);renderLines()}}
+
+function fillTargetOptions(){
+  const b=sourceBatch();
+  const sourceSales=str(b?.salesmanStaffId),blockedDrivers=new Set([str(b?.driverStaffId),str(b?.driver2StaffId)].filter(Boolean));
+  const sales=staff.filter(x=>/sales/i.test(x.position+' '+x.department)&&x.id!==sourceSales);
+  const drivers=staff.filter(x=>!blockedDrivers.has(x.id));
+  opts('salesman',sales,'Select New Salesman');opts('driver1',drivers,'Select New Driver 1');opts('driver2',drivers,'No Driver 2');opts('location',locations,'Select Location');
+  if(b&&!$('location').value&&locations.some(x=>x.id===b.locationCode))$('location').value=b.locationCode;
+}
+function showSource(){
+  const b=sourceBatch();
+  selected={};renderLines();fillTargetOptions();
+  if(!b){$('sourceInfo').textContent='Select an Open Batch to plan a transfer.';return}
+  const rows=batchItemRows(b),p=rows.reduce((a,x)=>a+num(x.purchasedPendingQty!==undefined?x.purchasedPendingQty:x.purchasedRemainingQty),0),z=rows.reduce((a,x)=>a+num(x.zeroCostPendingQty!==undefined?x.zeroCostPendingQty:x.zeroCostRemainingQty),0);
+  $('sourceInfo').textContent=b.batchId+' · '+(b.locationName||b.locationCode)+' · '+(b.salesmanName||'-')+' · Remaining '+(p+z)+' (Purchased '+p+(z?' · Zero-Cost '+z:'')+')';
+  if(locations.some(x=>x.id===b.locationCode))$('location').value=b.locationCode;
+}
+function renderPicker(){
+  const b=sourceBatch();if(!b){$('productList').innerHTML='<div class="empty">Select a Source Batch first.</div>';return}
+  const q=$('search').value.trim().toLowerCase(),rows=batchItemRows(b).filter(x=>physical(x)>0&&!selected[str(x.productCode)]).filter(x=>!q||[x.productName,x.productCode].join(' ').toLowerCase().includes(q));
+  $('productList').innerHTML=rows.map(row=>'<button class="pick" data-code="'+esc(row.productCode)+'"><b>'+esc(row.productName||row.productCode)+'</b><span>Remaining '+physical(row)+'</span></button>').join('')||'<div class="empty">No matching remaining products.</div>';
+  $('productList').querySelectorAll('[data-code]').forEach(btn=>btn.onclick=()=>{const code=btn.dataset.code;selected[code]={boxes:0,pcs:0};$('picker').classList.add('hidden');loadUnit(code);renderLines()});
+}
+function renderLines(){
+  const b=sourceBatch(),rows=batchItemRows(b);
+  const entries=Object.entries(selected);
+  if(!entries.length){$('lines').innerHTML='<div class="empty">'+(b?'Add products from '+esc(b.batchId)+'.':'Select a Source Batch first.')+'</div>';return}
+  $('lines').innerHTML=entries.map(([code,v])=>{const p=productFor(code)||{},src=rows.find(x=>str(x.productCode)===code)||{},u=units.get(code),total=lineTotal(code,v),max=physical(src);return '<div class="line"><div class="product-name"><strong>'+esc(p.name||src.productName||code)+'</strong><small>'+esc(code)+' · Source remaining '+max+(u?' · '+esc(u.name)+'='+u.baseQty+' '+esc(p.unit||src.unit||'PCS'):'')+'</small></div><div><label>'+(u?esc(u.name):'Boxes')+'</label><input data-code="'+esc(code)+'" data-field="boxes" type="number" min="0" step="1" value="'+num(v.boxes)+'" '+(u?'':'disabled')+'></div><div><label>'+esc(p.unit||src.unit||'PCS')+'</label><input data-code="'+esc(code)+'" data-field="pcs" type="number" min="0" step="1" value="'+num(v.pcs)+'"></div><div class="total">'+total+' / '+max+'</div><button class="remove" data-remove="'+esc(code)+'">×</button></div>'}).join('');
+  $('lines').querySelectorAll('input[data-code]').forEach(input=>input.oninput=()=>{const row=selected[input.dataset.code];if(!row)return;row[input.dataset.field]=num(input.value);const src=rows.find(x=>str(x.productCode)===input.dataset.code),total=lineTotal(input.dataset.code,row),max=physical(src);if(total>max){input.setCustomValidity('Maximum '+max);input.style.borderColor='#c33'}else{input.setCustomValidity('');input.style.borderColor='#cbd9e7'}renderLineTotal(input.closest('.line'),total,max)});
+  $('lines').querySelectorAll('[data-remove]').forEach(btn=>btn.onclick=()=>{delete selected[btn.dataset.remove];renderLines()});
+}
+function renderLineTotal(line,total,max){const e=line?.querySelector('.total');if(e){e.textContent=total+' / '+max;e.style.color=total>max?'#b53232':'#13704b'}}
+
+async function refresh(){
+  status('Loading live Open Batches…');
+  try{
+    const [r,k,p]=await Promise.all([rpc('bb_stock_references'),rpc('bb_stock_keyin_fast'),rpc('bb_current_access_profile')]);
+    refs=r;profile=p;
+    products=(r.products||[]).map(x=>({code:str(x.productCode||x.code),name:str(x.productName||x.name),unit:str(x.unit||'PCS')})).filter(x=>x.code);
+    staff=(r.staff||[]).map(x=>({id:str(x.staffId),name:str(x.staffName),position:str(x.position),department:str(x.departmentCode||x.department),status:str(x.status||'Active')})).filter(x=>x.id&&x.name&&x.status.toLowerCase()==='active');
+    locations=(r.locations||[]).map(x=>({id:str(x.locationCode),name:str(x.locationName||x.locationCode)}));
+    batches=(k.openBatches||[]).filter(b=>String(b.status||'OPEN').toUpperCase()==='OPEN'&&Number(b.totalRemainingQty||0)>0);
+    const old=$('sourceBatch').value;
+    $('sourceBatch').innerHTML='<option value="">Select Source Open Batch</option>'+batches.map(b=>'<option value="'+esc(b.batchId)+'">'+esc(b.batchId+' · '+(b.locationName||b.locationCode)+' · '+(b.salesmanName||'-')+' · Remaining '+Number(b.totalRemainingQty||0))+'</option>').join('');
+    if(batches.some(b=>b.batchId===old))$('sourceBatch').value=old;
+    $('controller').value=p.staff?.staffName||'Unlinked staff';
+    fillTargetOptions();showSource();
+    status('Loaded '+batches.length+' Open Batch'+(batches.length===1?'':'es')+'.');
+  }catch(e){status(e.message,true)}
+}
+
+function clearForm(){selected={};editing=null;['sourceBatch','salesman','driver1','driver2','location'].forEach(id=>$(id).value='');$('date').value=today();renderLines();showSource()}
+async function save(){
+  const b=sourceBatch();if(!b)return alert('Select a Source Open Batch.');
+  const salesman=$('salesman').value,driver1=$('driver1').value,driver2=$('driver2').value,location=$('location').value,date=$('date').value;
+  if(!salesman)return alert('Select the new Salesman.');if(!driver1)return alert('Select Driver 1.');if(driver2&&driver2===driver1)return alert('Driver 2 must be different from Driver 1.');if(!location)return alert('Select the new Batch Location.');if(!date)return alert('Transfer Date is required.');
+  const sourceDrivers=new Set([str(b.driverStaffId),str(b.driver2StaffId)].filter(Boolean));if(salesman===str(b.salesmanStaffId))return alert('New Salesman must be different from Source Batch Salesman.');if(sourceDrivers.has(driver1)||(driver2&&sourceDrivers.has(driver2)))return alert('New Driver must be different from Source Batch Drivers.');
+  const srcRows=batchItemRows(b),items=[];
+  for(const [code,v] of Object.entries(selected)){const src=srcRows.find(x=>str(x.productCode)===code),qty=lineTotal(code,v);if(!(qty>0))continue;if(qty>physical(src)+.000001)return alert((productFor(code)?.name||code)+' exceeds Source Batch remaining Qty.');const u=units.get(code);items.push({code,name:productFor(code)?.name||src?.productName||code,qty,boxes:num(v.boxes),pcs:num(v.pcs),sellingUnit:u?.name||'',baseQty:u?.baseQty||1})}
+  if(!items.length)return alert('Add at least one transfer product with Qty.');
+  const list=local(),old=list.find(x=>x.id===editing),sales=staff.find(x=>x.id===salesman),d1=staff.find(x=>x.id===driver1),d2=staff.find(x=>x.id===driver2),loc=locations.find(x=>x.id===location);
+  const record={id:editing||'BT-'+Date.now(),created:old?.created||new Date().toISOString(),status:'Pending',sourceBatchId:b.batchId,sourceLocationCode:b.locationCode,sourceLocationName:b.locationName||b.locationCode,sourceSalesmanName:b.salesmanName||'',controllerName:profile?.staff?.staffName||'',salesmanName:sales?.name||salesman,driver1Name:d1?.name||driver1,driver2Name:d2?.name||'',locationName:loc?.name||location,fields:{controller:profile?.staff?.staffId||'',sourceBatchId:b.batchId,date,location,salesman,driver1,driver2},items};
+  try{await shared('save',record)}catch(e){return alert('Shared Batch Transfer was NOT updated: '+e.message)}
+  try{localStorage.setItem(STORE,JSON.stringify([record,...list.filter(x=>x.id!==record.id)]))}catch(e){return alert('Shared prefill saved but local history failed: '+e.message)}
+  selected={};editing=null;renderLines();alert('Batch Transfer prefill saved. No stock was moved.');showHistory();
+}
+function showTransfer(){$('transfer').classList.remove('hidden');$('history').classList.add('hidden');$('tabTransfer').classList.add('primary');$('tabHistory').classList.remove('primary')}
+function showHistory(){
+  $('transfer').classList.add('hidden');$('history').classList.remove('hidden');$('tabTransfer').classList.remove('primary');$('tabHistory').classList.add('primary');
+  const list=local();$('records').innerHTML=list.map(r=>'<div class="history-item"><b>'+esc(r.id)+'</b> · '+esc(r.sourceBatchId)+' → New Batch<p>'+esc(r.sourceLocationName||r.sourceLocationCode)+' · To '+esc(r.salesmanName)+' · '+esc(r.locationName)+' · '+r.items.length+' products</p><div class="row"><button data-id="'+esc(r.id)+'" data-action="edit">Edit</button><button data-id="'+esc(r.id)+'" data-action="copy">Copy Report</button><button data-id="'+esc(r.id)+'" data-action="delete">Delete</button></div></div>').join('')||'<div class="empty">No saved Batch Transfer history on this device.</div>';
+  $('records').querySelectorAll('button').forEach(btn=>btn.onclick=async()=>{const r=list.find(x=>x.id===btn.dataset.id);if(!r)return;if(btn.dataset.action==='copy'){const text=['🔀 BIG BROTHER — BATCH TRANSFER','Source: '+r.sourceBatchId,'To Salesman: '+r.salesmanName,'Driver 1: '+r.driver1Name+(r.driver2Name?' · Driver 2: '+r.driver2Name:''),'Location: '+r.locationName,'Date: '+r.fields.date,'',...r.items.map((x,i)=>(i+1)+'. '+x.name+': '+x.qty)].join('\n');try{await navigator.clipboard.writeText(text);alert('Report copied!')}catch{prompt('Copy report:',text)}}
+    if(btn.dataset.action==='delete'&&confirm('Delete this local history and pending shared Batch Transfer prefill?')){try{await shared('remove',r)}catch(e){return alert(e.message)}localStorage.setItem(STORE,JSON.stringify(list.filter(x=>x.id!==r.id)));showHistory()}
+    if(btn.dataset.action==='edit'){const b=batches.find(x=>x.batchId===r.sourceBatchId);if(!b)return alert('Source Batch is not currently open or accessible.');editing=r.id;showTransfer();$('sourceBatch').value=r.sourceBatchId;showSource();$('date').value=r.fields.date||today();$('location').value=r.fields.location||'';$('salesman').value=r.fields.salesman||'';$('driver1').value=r.fields.driver1||'';$('driver2').value=r.fields.driver2||'';selected=Object.fromEntries((r.items||[]).map(x=>[x.code,{boxes:num(x.boxes),pcs:num(x.pcs??x.qty)}]));for(const x of r.items||[])loadUnit(x.code);renderLines()}
+  });
+}
+
+$('date').value=today();$('refresh').onclick=refresh;$('sourceBatch').onchange=showSource;$('add').onclick=()=>{if(!sourceBatch())return alert('Select Source Open Batch first.');$('search').value='';renderPicker();$('picker').classList.remove('hidden')};$('closePicker').onclick=()=>$('picker').classList.add('hidden');$('picker').onclick=e=>{if(e.target===$('picker'))$('picker').classList.add('hidden')};$('search').oninput=renderPicker;$('clear').onclick=()=>{if(confirm('Clear current Batch Transfer?'))clearForm()};$('save').onclick=save;$('tabTransfer').onclick=showTransfer;$('tabHistory').onclick=showHistory;
+refresh();
+})();
+</script>
+</body>
+</html>
