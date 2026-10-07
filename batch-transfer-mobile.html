@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#173f77">
+<title>BIG BROTHER — Batch Transfer Mobile</title>
+<style>
+html,body{margin:0;min-height:100%;background:#eef3f8;font-family:Arial,sans-serif}
+.loading{margin:14vh 12px;padding:22px 16px;border:1px solid #d7e2ee;border-radius:16px;background:#fff;color:#173f77;text-align:center;font-weight:900;box-shadow:0 8px 28px rgba(23,63,119,.08)}
+.loading small{display:block;margin-top:7px;color:#6d8096;font-size:11px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="loading">Loading Batch Transfer…<small>Shared Stock Control logic · Mobile layout</small></div>
+<script>
+(async function(){
+  'use strict';
+  try{
+    const response=await fetch('batch-transfer.html?v=20261008-mobile-shared1',{cache:'no-store'});
+    if(!response.ok)throw new Error('Could not load Batch Transfer source.');
+    let html=await response.text();
+    const headClose=html.toLowerCase().indexOf('</head>');
+    if(headClose<0)throw new Error('Batch Transfer source is missing </head>.');
+
+    const mobileStyle=`
+<style id="bb-batch-transfer-mobile">
+html,body{max-width:100%;overflow-x:hidden;background:#eef3f8!important}
+body{font-size:14px}
+.wrap{max-width:100%!important;margin:0!important;padding:7px!important}
+.card{padding:10px!important;margin-bottom:8px!important;border-radius:12px!important;box-shadow:0 3px 14px rgba(23,63,119,.045)!important}
+.top{display:block!important}
+.top h1{font-size:19px!important;line-height:1.18!important}
+.top .sub{font-size:9px!important;line-height:1.35!important;margin-top:4px!important}
+.top>button{width:100%!important;min-height:40px!important;margin-top:8px!important}
+.status{margin-top:8px!important;padding:8px 9px!important;font-size:9px!important;line-height:1.35!important}
+.tabs{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important;margin-bottom:8px!important}
+.tabs button{width:100%!important;min-width:0!important;min-height:40px!important;padding:7px 5px!important;font-size:11px!important}
+h2{font-size:14px!important;margin:0 0 9px!important}
+.grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
+.grid .field:first-child,.grid .field:nth-child(2),.grid .field:last-child{grid-column:1/-1!important}
+.field label{font-size:7px!important;margin-bottom:3px!important;letter-spacing:.02em!important}
+.field input,.field select{min-height:39px!important;padding:6px 7px!important;border-radius:8px!important;font-size:11px!important;max-width:100%!important}
+.source-info{margin-top:8px!important;padding:8px 9px!important;font-size:9px!important;line-height:1.35!important}
+.products-head{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:7px!important;align-items:center!important}
+.products-head h2{margin:0!important}
+.products-head .sub{font-size:8px!important;line-height:1.3!important}
+.products-head>button{min-width:108px!important;min-height:39px!important;padding:6px 8px!important;font-size:10px!important}
+.lines{margin-top:7px!important}
+.line{display:grid!important;grid-template-columns:minmax(0,1fr) 50px 50px 53px 27px!important;gap:4px!important;align-items:center!important;padding:7px 0!important}
+.product-name{min-width:0!important}
+.product-name strong{font-size:9.5px!important;line-height:1.2!important;white-space:normal!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow:hidden!important}
+.product-name small{display:block!important;margin-top:2px!important;font-size:6.8px!important;line-height:1.2!important;white-space:normal!important}
+.line label{font-size:5.8px!important;margin-bottom:2px!important;text-align:center!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.line input{width:100%!important;min-width:0!important;height:32px!important;min-height:32px!important;padding:2px!important;border-radius:7px!important;font-size:11px!important}
+.total{min-width:0!important;padding:7px 1px!important;border:1px solid #cfe1d7!important;border-radius:7px!important;background:#f1faf5!important;text-align:center!important;font-size:8px!important;line-height:1.1!important}
+.remove{width:27px!important;min-width:27px!important;height:32px!important;min-height:32px!important;padding:0!important;border-radius:7px!important;font-size:16px!important}
+.actions{display:grid!important;grid-template-columns:minmax(82px,.7fr) minmax(0,1.7fr)!important;gap:6px!important;margin-top:9px!important}
+.actions button{width:100%!important;min-width:0!important;min-height:40px!important;padding:7px 5px!important;font-size:10px!important}
+.foot-note{margin-top:7px!important;font-size:7.5px!important;line-height:1.35!important}
+.empty{padding:14px 8px!important;font-size:9px!important}
+#history{padding:10px!important}
+.history-item{padding:9px!important;margin-bottom:7px!important;border-radius:9px!important}
+.history-item p{font-size:8px!important;line-height:1.35!important}
+.history-item .actions{grid-template-columns:1fr 1fr!important}
+.overlay{padding:6px!important;align-items:flex-end!important}
+.sheet{width:100%!important;max-width:100%!important;max-height:91dvh!important;border-radius:17px 17px 10px 10px!important}
+.sheet-head{padding:10px!important}
+.sheet-head strong{font-size:12px!important}
+.sheet-head button{min-width:38px!important;min-height:38px!important;padding:4px!important;font-size:17px!important}
+.search{padding:8px!important}
+.search input{height:39px!important;font-size:12px!important}
+.picker-list{padding:0 8px 8px!important}
+.pick{min-height:45px!important;padding:9px 2px!important;font-size:10px!important}
+.pick span{font-size:8px!important}
+button{touch-action:manipulation}
+@media(max-width:365px){
+ .wrap{padding:5px!important}
+ .card{padding:8px!important}
+ .grid{gap:5px!important}
+ .line{grid-template-columns:minmax(0,1fr) 44px 44px 47px 25px!important;gap:3px!important}
+ .line input{font-size:10px!important}
+ .product-name strong{font-size:9px!important}
+ .product-name small{font-size:6.2px!important}
+ .total{font-size:7px!important}
+ .remove{width:25px!important;min-width:25px!important}
+ .products-head{grid-template-columns:1fr!important}
+ .products-head>button{width:100%!important}
+}
+</style>
+`;
+
+    html=html.slice(0,headClose)+mobileStyle+html.slice(headClose);
+    document.open();
+    document.write(html);
+    document.close();
+  }catch(error){
+    console.error(error);
+    document.body.innerHTML='<div class="loading">Could not open Batch Transfer<small>'+String(error&&error.message?error.message:error)+'</small></div>';
+  }
+})();
+</script>
+</body>
+</html>
