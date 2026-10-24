@@ -17,7 +17,7 @@ html,body{margin:0;min-height:100%;background:#eef3f8;font-family:Arial,sans-ser
 (async function(){
   'use strict';
   try{
-    const response=await fetch('batch-transfer.html?v=20261008-mobile-shared1',{cache:'no-store'});
+    const response=await fetch('batch-transfer.html?v=20261008-mobile-shared1',{cache:'default'});
     if(!response.ok)throw new Error('Could not load Batch Transfer source.');
     let html=await response.text();
     const headClose=html.toLowerCase().indexOf('</head>');
