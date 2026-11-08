@@ -17,6 +17,12 @@
 #lines .line-total{min-width:0;text-align:center;font-size:10px;color:#173f77;background:#eaf3ff;border:1px solid #c8dcf5;border-radius:7px;padding:9px 1px;line-height:1.15;overflow-wrap:anywhere}
 #lines .line-remove{width:29px;min-width:29px;min-height:32px;height:32px;padding:0;font-size:17px;color:#173f77}
 @media(max-width:370px){#lines .linegrid{grid-template-columns:minmax(0,1fr) 45px 45px 50px 26px!important;gap:3px!important}#lines .line-remove{width:26px;min-width:26px}}
+</style><style id="bb-prefill-row-reorder">
+/* Product prefill ordering: a dedicated handle keeps quantity inputs and mobile scrolling independent. */
+.bb-drag-handle{float:left;display:grid;place-items:center;width:23px;min-width:23px;height:31px;min-height:31px;padding:0!important;margin:0 5px 0 0!important;border:1px solid #bfd0e2!important;border-radius:7px;background:#f1f6fc!important;color:#42678b!important;font:21px/1 Arial,sans-serif!important;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.bb-drag-handle:active{cursor:grabbing}
+.bb-drag-moving{background:#eaf4ff!important;outline:2px dashed #4a83bc;outline-offset:-2px;position:relative;z-index:2}
+@media(min-width:760px){.bb-drag-handle{width:29px;min-width:29px;height:38px;min-height:38px;margin-right:10px!important}}
 </style></head><body><div class="wrap"><div class="card"><h1>📦 BIG BROTHER</h1><div>Stock Allocation Calculator · Build 20</div><p class="muted">Separate planner · Live warehouse quantities · No stock reservation or deduction</p><div id="status">Connecting to database…</div><p><button id="refresh">↻ Refresh warehouse</button></p></div><div class="row"><button id="tabCalc" class="primary">Calculator</button><button id="tabHistory">Allocation History</button></div><main id="calc"><details id="allocationInfo" class="card allocation-info" open><summary>Allocation Information</summary><div class="allocation-info-body"><div class="fields"><div><label>Inventory Controller (Logged-in Staff)</label><input id="controllerDisplay" readonly placeholder="Loading your staff profile…" /><input id="controller" type="hidden" /></div><div><label>Location <span style="color:#c73535">*</span></label><select id="location" required></select></div><div><label>Salesman <span style="color:#c73535">*</span></label><select id="salesman" required></select></div><div><label>Driver 1 <span style="color:#c73535">*</span></label><select id="driver1" required></select></div><div><label>Driver 2 (optional)</label><select id="driver2"></select></div></div><div class="row" style="margin-top:12px"><button id="loadLast" type="button">↻ Load Last Allocation for Location</button></div><p class="muted">Uses the latest saved allocation for this location on this device. Saving creates a new allocation.</p></div></details><div class="card"><h2>Select Products</h2><p class="muted">Search and select products like the existing Calculator. WH = current warehouse good stock.</p><button id="openPicker" class="primary" type="button">＋ Select Product</button><div id="picker" class="picker hidden"><div class="pickerPanel"><div class="pickerHead"><h2>Select Product</h2><button id="closePicker" type="button">✕</button></div><div class="pickerMeta" id="pickerCount"></div><div class="pickerTools"><label><input type="checkbox" id="useGroups"> Use Product Groups</label><small class="muted">Show one group name instead of its specific products.</small><input id="search" placeholder="Search product name or code (optional)"></div><div id="products" class="products"></div></div></div></div><div class="card"><h2>Allocation Quantities</h2><div id="lines" class="muted">Choose products above.</div><h2 id="total">Total: 0 PCS</h2><div class="row"><button id="clear">Clear</button><button id="save" class="primary">Save Allocation</button></div></div></main><main id="history" class="card hidden"><h2>Allocation History</h2><p class="muted">Only saved on this browser/device. Clear browser data = history lost. Stock movement happens later in Batch Stock to Salesman.</p><div id="records"></div></main></div><div id="loadDialog" class="loadDialog hidden" role="dialog" aria-modal="true" aria-labelledby="loadDialogTitle"><div class="loadDialogPanel"><div class="loadDialogIcon">📋</div><h2 id="loadDialogTitle">Load previous allocation?</h2><p>Use the latest saved allocation as a starting point for your next delivery.</p><div id="loadDialogLocation" class="loadDialogLocation"></div><p>Any unsaved calculator changes will be replaced. Your previous allocation stays safe.</p><div class="loadDialogActions"><button id="cancelLoad" type="button">Cancel</button><button id="confirmLoad" class="primary" type="button">Load Allocation</button></div></div></div><script>
 window.addEventListener('error',e=>{const status=document.getElementById('status');if(status){status.textContent='App error: '+(e.message||'Unknown error')+' (line '+(e.lineno||'?')+')';status.className='error';}});
 setTimeout(()=>{const status=document.getElementById('status');if(status&&status.textContent.includes('Connecting to database')){status.textContent='App did not start. Please screenshot this Build 11 page and the browser Console error.';status.className='error';}},4000);
@@ -36,12 +42,88 @@ function arrange(rows,group=false){const order=group?GROUP_ORDER:ORDER;return ro
 function renderProducts(){let q=$('search').value.trim().toLowerCase(),groups=$('useGroups').checked;let available=arrange(products.filter(p=>!selected[p.code]&&(warehouse.get(p.code)||0)>0));let entries=available;if(groups){let byCode=new Map();entries=[];available.forEach(p=>{let mapping=groupMappings.get(p.code.toUpperCase())||FALLBACK[p.code.toUpperCase()];if(!mapping){entries.push(p);return}let code=mapping[0],item=byCode.get(code);if(!item){item={code,name:mapping[1],group:true,members:[]};byCode.set(code,item);entries.push(item)}item.members.push(p.code)});entries=arrange(entries,true)}$('pickerCount').textContent=(groups?'Product Groups':'All Products')+' · '+entries.length+' available';let matched=q?entries.filter(p=>[p.name,p.code,p.unit||'',p.barcode||''].some(v=>v.toLowerCase().includes(q))):entries;$('products').innerHTML=matched.map(p=>'<button class="product" data-code="'+esc(p.code)+'"><b>'+esc(p.name)+'</b><small>'+esc(p.code)+(p.barcode?' · '+esc(p.barcode):'')+(p.group?' · '+p.members.length+' products':' · WH: '+(warehouse.get(p.code)??0)+' PCS')+'</small></button>').join('')||'<p class="muted">No matching products.</p>';$('products').querySelectorAll('button').forEach(b=>b.onclick=()=>{let c=b.dataset.code;if(groups){let group=entries.find(p=>p.code===c&&p.group);if(group){$('useGroups').checked=false;$('search').value='';renderProducts();$('products').innerHTML=arrange(products.filter(p=>group.members.includes(p.code))).map(p=>'<button class="product" data-code="'+esc(p.code)+'"><b>'+esc(p.name)+'</b><small>'+esc(p.code)+' · WH: '+(warehouse.get(p.code)??0)+' PCS</small></button>').join('');$('products').querySelectorAll('button').forEach(el=>el.onclick=()=>chooseProduct(el.dataset.code));$('pickerCount').textContent=group.name+' · choose specific product';return}}chooseProduct(c)})}
 function focusAllocationUnit(code){const all=Array.from($('lines').querySelectorAll('input[data-code]'));const box=all.find(x=>x.dataset.code===code&&x.dataset.field==='boxes'&&!x.disabled);const pcs=all.find(x=>x.dataset.code===code&&x.dataset.field==='qty');const field=box||pcs;if(field){field.focus();field.select()}}
 function chooseProduct(c){selected[c]={qty:0,boxes:0};$('picker').classList.add('hidden');$('search').value='';renderProducts();renderLines();focusAllocationUnit(c);loadProductUnit(c).then(()=>focusAllocationUnit(c))}
+
+/* Pointer Events work with a mouse or a single touch. Arrow keys on a focused grip also reorder. */
+function bbEnableReorder(container,getState,setState,redraw){
+  let drag=null,frame=0;
+  const rows=()=>Array.from(container.children).filter(el=>el.hasAttribute('data-bb-reorder'));
+  function commit(codes){
+    const old=getState(),next={};
+    for(const code of codes)if(Object.prototype.hasOwnProperty.call(old,code))next[code]=old[code];
+    setState(next);
+    redraw();
+  }
+  function place(){
+    if(!drag)return;
+    const hit=document.elementFromPoint(drag.x,drag.y)?.closest('[data-bb-reorder]');
+    if(!hit||hit.parentElement!==container||hit===drag.row)return;
+    const bounds=hit.getBoundingClientRect();
+    const before=drag.y<bounds.top+bounds.height/2;
+    container.insertBefore(drag.row,before?hit:hit.nextSibling);
+    drag.moved=true;
+  }
+  function scrollTick(){
+    if(!drag)return;
+    const edge=75,h=window.innerHeight;
+    const delta=drag.y<edge?-11:drag.y>h-edge?11:0;
+    if(delta)window.scrollBy(0,delta);
+    place();
+    frame=requestAnimationFrame(scrollTick);
+  }
+  function finish(){
+    if(!drag)return;
+    const done=drag;
+    drag=null;
+    cancelAnimationFrame(frame);
+    done.row.classList.remove('bb-drag-moving');
+    try{if(done.handle.hasPointerCapture(done.id))done.handle.releasePointerCapture(done.id)}catch(_){}
+    if(done.moved)commit(rows().map(row=>row.dataset.bbReorder));
+  }
+  container.addEventListener('pointerdown',event=>{
+    const initial=event.target.closest('.bb-drag-handle');
+    if(!initial||!container.contains(initial)||(event.pointerType==='mouse'&&event.button!==0))return;
+    const code=initial.closest('[data-bb-reorder]')?.dataset.bbReorder;
+    if(!code)return;
+    event.preventDefault();
+    // Flush an unsaved quantity on blur before sorting the rows.
+    if(container.contains(document.activeElement)&&document.activeElement.matches('input'))document.activeElement.blur();
+    const row=rows().find(el=>el.dataset.bbReorder===code),handle=row?.querySelector('.bb-drag-handle');
+    if(!handle)return;
+    drag={id:event.pointerId,row,handle,x:event.clientX,y:event.clientY,moved:false};
+    row.classList.add('bb-drag-moving');
+    try{handle.setPointerCapture(event.pointerId)}catch(_){}
+    frame=requestAnimationFrame(scrollTick);
+  });
+  container.addEventListener('pointermove',event=>{
+    if(!drag||event.pointerId!==drag.id)return;
+    drag.x=event.clientX;drag.y=event.clientY;
+    place();
+  });
+  ['pointerup','pointercancel','lostpointercapture'].forEach(type=>container.addEventListener(type,event=>{
+    if(drag&&event.pointerId===drag.id)finish();
+  }));
+  container.addEventListener('keydown',event=>{
+    const grip=event.target.closest('.bb-drag-handle');
+    if(!grip||(event.key!=='ArrowUp'&&event.key!=='ArrowDown'))return;
+    const code=grip.closest('[data-bb-reorder]')?.dataset.bbReorder;
+    const codes=rows().map(el=>el.dataset.bbReorder),i=codes.indexOf(code);
+    const next=i+(event.key==='ArrowUp'?-1:1);
+    if(i<0||next<0||next>=codes.length)return;
+    event.preventDefault();
+    codes.splice(i,1);codes.splice(next,0,code);
+    commit(codes);
+    const moved=rows().find(el=>el.dataset.bbReorder===code);
+    moved?.querySelector('.bb-drag-handle')?.focus();
+  });
+}
+
+bbEnableReorder($('lines'),()=>selected,next=>{selected=next},renderLines);
 function renderLines(){
  const entries=Object.entries(selected);
  $('lines').innerHTML=entries.map(([code,v],i)=>{
    const p=products.find(x=>x.code===code),u=unitFor(code),total=n(v.qty)+n(v.boxes)*(u?.baseQty||1);
-   return '<div class="line"><div class="linegrid">'+
-     '<div class="line-name"><b>'+(i+1)+'. '+esc(p?.name||code)+'</b></div>'+
+   return '<div class="line" data-bb-reorder="'+esc(code)+'"><div class="linegrid">'+
+     '<div class="line-name"><button type="button" class="bb-drag-handle" aria-label="Move '+esc(p?.name||code)+'" title="Drag to reorder (or use Up/Down arrows)">⠿</button><b>'+(i+1)+'. '+esc(p?.name||code)+'</b></div>'+
      '<div class="line-source"><label>'+(u?esc(u.sellingUnitName)+' (×'+u.baseQty+')':'CTN')+'</label>'+
        '<input aria-label="Carton quantity for '+esc(p?.name||code)+'" data-code="'+esc(code)+'" data-field="boxes" type="number" min="0" step="1" value="'+(n(v.boxes)>0?n(v.boxes):'')+'" '+(u?'':'disabled')+'></div>'+
      '<div class="line-source"><label>PCS</label><input aria-label="Piece quantity for '+esc(p?.name||code)+'" data-code="'+esc(code)+'" data-field="qty" type="number" min="0" step="1" value="'+(n(v.qty)>0?n(v.qty):'')+'"></div>'+
