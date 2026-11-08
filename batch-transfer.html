@@ -22,7 +22,13 @@ button{border:1px solid #cbd9e7;border-radius:9px;background:#fff;color:var(--na
 @media(max-width:760px){.wrap{padding:8px}.card{padding:11px;border-radius:11px}h1{font-size:20px}.top{display:block}.top button{margin-top:8px;width:100%}.grid{grid-template-columns:1fr 1fr}.line{grid-template-columns:minmax(0,1fr) 78px 78px 70px 30px;gap:5px}.line input{height:34px;padding:4px;font-size:11px}.product-name strong{font-size:10px}.product-name small{font-size:7px}.total{font-size:10px}.actions button{flex:1}.products-head{align-items:stretch}.products-head button{min-width:120px}}
 @media(max-width:480px){.grid{grid-template-columns:1fr}.line{grid-template-columns:minmax(0,1fr) 72px 72px 60px 28px}.line label{font-size:6px}.sheet{max-height:88vh}}
 </style>
-</head>
+<style id="bb-prefill-row-reorder">
+/* Product prefill ordering: a dedicated handle keeps quantity inputs and mobile scrolling independent. */
+.bb-drag-handle{float:left;display:grid;place-items:center;width:23px;min-width:23px;height:31px;min-height:31px;padding:0!important;margin:0 5px 0 0!important;border:1px solid #bfd0e2!important;border-radius:7px;background:#f1f6fc!important;color:#42678b!important;font:21px/1 Arial,sans-serif!important;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.bb-drag-handle:active{cursor:grabbing}
+.bb-drag-moving{background:#eaf4ff!important;outline:2px dashed #4a83bc;outline-offset:-2px;position:relative;z-index:2}
+@media(min-width:760px){.bb-drag-handle{width:29px;min-width:29px;height:38px;min-height:38px;margin-right:10px!important}}
+</style></head>
 <body>
 <div class="wrap">
   <section class="card">
@@ -112,11 +118,87 @@ function renderPicker(){
   $('productList').innerHTML=rows.map(row=>'<button class="pick" data-code="'+esc(row.productCode)+'"><b>'+esc(row.productName||row.productCode)+'</b><span>Remaining '+physical(row)+'</span></button>').join('')||'<div class="empty">No matching remaining products.</div>';
   $('productList').querySelectorAll('[data-code]').forEach(btn=>btn.onclick=()=>{const code=btn.dataset.code;selected[code]={boxes:0,pcs:0};$('picker').classList.add('hidden');loadUnit(code);renderLines()});
 }
+
+/* Pointer Events work with a mouse or a single touch. Arrow keys on a focused grip also reorder. */
+function bbEnableReorder(container,getState,setState,redraw){
+  let drag=null,frame=0;
+  const rows=()=>Array.from(container.children).filter(el=>el.hasAttribute('data-bb-reorder'));
+  function commit(codes){
+    const old=getState(),next={};
+    for(const code of codes)if(Object.prototype.hasOwnProperty.call(old,code))next[code]=old[code];
+    setState(next);
+    redraw();
+  }
+  function place(){
+    if(!drag)return;
+    const hit=document.elementFromPoint(drag.x,drag.y)?.closest('[data-bb-reorder]');
+    if(!hit||hit.parentElement!==container||hit===drag.row)return;
+    const bounds=hit.getBoundingClientRect();
+    const before=drag.y<bounds.top+bounds.height/2;
+    container.insertBefore(drag.row,before?hit:hit.nextSibling);
+    drag.moved=true;
+  }
+  function scrollTick(){
+    if(!drag)return;
+    const edge=75,h=window.innerHeight;
+    const delta=drag.y<edge?-11:drag.y>h-edge?11:0;
+    if(delta)window.scrollBy(0,delta);
+    place();
+    frame=requestAnimationFrame(scrollTick);
+  }
+  function finish(){
+    if(!drag)return;
+    const done=drag;
+    drag=null;
+    cancelAnimationFrame(frame);
+    done.row.classList.remove('bb-drag-moving');
+    try{if(done.handle.hasPointerCapture(done.id))done.handle.releasePointerCapture(done.id)}catch(_){}
+    if(done.moved)commit(rows().map(row=>row.dataset.bbReorder));
+  }
+  container.addEventListener('pointerdown',event=>{
+    const initial=event.target.closest('.bb-drag-handle');
+    if(!initial||!container.contains(initial)||(event.pointerType==='mouse'&&event.button!==0))return;
+    const code=initial.closest('[data-bb-reorder]')?.dataset.bbReorder;
+    if(!code)return;
+    event.preventDefault();
+    // Flush an unsaved quantity on blur before sorting the rows.
+    if(container.contains(document.activeElement)&&document.activeElement.matches('input'))document.activeElement.blur();
+    const row=rows().find(el=>el.dataset.bbReorder===code),handle=row?.querySelector('.bb-drag-handle');
+    if(!handle)return;
+    drag={id:event.pointerId,row,handle,x:event.clientX,y:event.clientY,moved:false};
+    row.classList.add('bb-drag-moving');
+    try{handle.setPointerCapture(event.pointerId)}catch(_){}
+    frame=requestAnimationFrame(scrollTick);
+  });
+  container.addEventListener('pointermove',event=>{
+    if(!drag||event.pointerId!==drag.id)return;
+    drag.x=event.clientX;drag.y=event.clientY;
+    place();
+  });
+  ['pointerup','pointercancel','lostpointercapture'].forEach(type=>container.addEventListener(type,event=>{
+    if(drag&&event.pointerId===drag.id)finish();
+  }));
+  container.addEventListener('keydown',event=>{
+    const grip=event.target.closest('.bb-drag-handle');
+    if(!grip||(event.key!=='ArrowUp'&&event.key!=='ArrowDown'))return;
+    const code=grip.closest('[data-bb-reorder]')?.dataset.bbReorder;
+    const codes=rows().map(el=>el.dataset.bbReorder),i=codes.indexOf(code);
+    const next=i+(event.key==='ArrowUp'?-1:1);
+    if(i<0||next<0||next>=codes.length)return;
+    event.preventDefault();
+    codes.splice(i,1);codes.splice(next,0,code);
+    commit(codes);
+    const moved=rows().find(el=>el.dataset.bbReorder===code);
+    moved?.querySelector('.bb-drag-handle')?.focus();
+  });
+}
+
+bbEnableReorder($('lines'),()=>selected,next=>{selected=next},renderLines);
 function renderLines(){
   const b=sourceBatch(),rows=batchItemRows(b);
   const entries=Object.entries(selected);
   if(!entries.length){$('lines').innerHTML='<div class="empty">'+(b?'Add products from '+esc(b.batchId)+'.':'Select a Source Batch first.')+'</div>';return}
-  $('lines').innerHTML=entries.map(([code,v])=>{const p=productFor(code)||{},src=rows.find(x=>str(x.productCode)===code)||{},u=units.get(code),total=lineTotal(code,v),max=physical(src);return '<div class="line"><div class="product-name"><strong>'+esc(p.name||src.productName||code)+'</strong><small>'+esc(code)+' · Source remaining '+max+(u?' · '+esc(u.name)+'='+u.baseQty+' '+esc(p.unit||src.unit||'PCS'):'')+'</small></div><div><label>'+(u?esc(u.name):'Boxes')+'</label><input data-code="'+esc(code)+'" data-field="boxes" type="number" min="0" step="1" value="'+num(v.boxes)+'" '+(u?'':'disabled')+'></div><div><label>'+esc(p.unit||src.unit||'PCS')+'</label><input data-code="'+esc(code)+'" data-field="pcs" type="number" min="0" step="1" value="'+num(v.pcs)+'"></div><div class="total">'+total+' / '+max+'</div><button class="remove" data-remove="'+esc(code)+'">×</button></div>'}).join('');
+  $('lines').innerHTML=entries.map(([code,v],i)=>{const p=productFor(code)||{},src=rows.find(x=>str(x.productCode)===code)||{},u=units.get(code),total=lineTotal(code,v),max=physical(src);return '<div class="line" data-bb-reorder="'+esc(code)+'"><div class="product-name"><button type="button" class="bb-drag-handle" aria-label="Move '+esc(p.name||src.productName||code)+'" title="Drag to reorder (or use Up/Down arrows)">⠿</button><strong>'+(i+1)+'. '+esc(p.name||src.productName||code)+'</strong><small>'+esc(code)+' · Source remaining '+max+(u?' · '+esc(u.name)+'='+u.baseQty+' '+esc(p.unit||src.unit||'PCS'):'')+'</small></div><div><label>'+(u?esc(u.name):'Boxes')+'</label><input data-code="'+esc(code)+'" data-field="boxes" type="number" min="0" step="1" value="'+num(v.boxes)+'" '+(u?'':'disabled')+'></div><div><label>'+esc(p.unit||src.unit||'PCS')+'</label><input data-code="'+esc(code)+'" data-field="pcs" type="number" min="0" step="1" value="'+num(v.pcs)+'"></div><div class="total">'+total+' / '+max+'</div><button class="remove" data-remove="'+esc(code)+'">×</button></div>'}).join('');
   $('lines').querySelectorAll('input[data-code]').forEach(input=>input.oninput=()=>{const row=selected[input.dataset.code];if(!row)return;row[input.dataset.field]=num(input.value);const src=rows.find(x=>str(x.productCode)===input.dataset.code),total=lineTotal(input.dataset.code,row),max=physical(src);if(total>max){input.setCustomValidity('Maximum '+max);input.style.borderColor='#c33'}else{input.setCustomValidity('');input.style.borderColor='#cbd9e7'}renderLineTotal(input.closest('.line'),total,max)});
   $('lines').querySelectorAll('[data-remove]').forEach(btn=>btn.onclick=()=>{delete selected[btn.dataset.remove];renderLines()});
 }
