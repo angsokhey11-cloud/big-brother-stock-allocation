@@ -33,7 +33,13 @@
 .bb-batch-card-location{display:inline-block;flex:0 1 auto;min-width:0;color:#17314c;font-weight:750;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bb-batch-card-sales{display:inline-block;flex:1 1 auto;min-width:0;color:#5a718a;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bb-batch-none{padding:16px 8px;color:#59708a}
-</style><style id="bb-return-collapse">.bb-return-details{padding:0!important;overflow:visible}.bb-return-details>summary{list-style:none;cursor:pointer;padding:12px;font-weight:800;font-size:17px;color:#173f77;display:flex;align-items:center;justify-content:space-between}.bb-return-details>summary::-webkit-details-marker{display:none}.bb-return-details>summary::after{content:"›";font-size:23px;line-height:1;transform:rotate(0deg);transition:transform .15s}.bb-return-details[open]>summary::after{transform:rotate(90deg)}.bb-return-body{padding:0 12px 12px}</style></head><body><div class="wrap"><div class="card"><h1>📦 BIG BROTHER</h1><p>Back Sale Receive · Separate report</p><p class="muted">Report preparation only. No stock movement is recorded here.</p><div id="status">Connecting…</div><button id="refresh">↻ Refresh open batches</button></div><div class="row"><button id="tabReceive" class="primary">Back Sale Receive</button><button id="tabHistory">Back Sale History</button></div><main id="receive"><details id="returnInformation" class="card bb-return-details" open><summary>Return Information</summary><div class="bb-return-body"><div class="grid"><div><label>Inventory Controller</label><input id="controller" readonly></div><div><label>Open Batch</label><select id="batch" class="bb-batch-native" aria-label="Open Batch"><option value="">Loading…</option></select><button type="button" id="openBatchPicker" class="bb-batch-trigger" aria-haspopup="dialog" aria-controls="batchPicker"><span id="batchChoice">Select open batch</span><span class="bb-batch-chevron">⌄</span></button></div></div><div id="batchInfo" class="muted"></div><div id="batchPicker" class="bb-batch-overlay hidden" role="dialog" aria-modal="true" aria-label="Select open batch"><div class="bb-batch-panel"><div class="bb-batch-head"><b>Select Open Batch</b><button id="closeBatchPicker" type="button" aria-label="Close batch list">×</button></div><input id="batchSearch" type="search" placeholder="Search batch, location, salesperson or date" autocomplete="off"><div id="batchPickerList" class="bb-batch-results"></div></div></div></div></details><div class="card"><h2>Returned Products</h2><button class="primary" id="add">+ Add Product</button><div id="picker" class="picker hidden"><div class="pickerPanel"><div class="pickerHead"><b>Select Product from Batch</b><button id="closePicker">✕</button></div><div class="pickerList"><input id="searchProduct" placeholder="Search product name or code" autocomplete="off"><div id="productList"></div></div></div></div><div id="items"></div><div id="total"><b>Total: 0 PCS</b></div><div class="row" style="margin-top:15px"><button id="clear">Clear</button><button class="primary" id="save">Save Back Sale Report</button></div></div></main><main id="history" class="card hidden"><h2>Back Sale History</h2><p class="muted">Saved only on this browser/device. Clearing browser data removes this history.</p><div id="records"></div></main></div><script>(()=>{'use strict';const URL='https://sjfhlaclgmkwwofzstok.supabase.co',KEY='sb_publishable_w762jR65CWwlO30fKQsYOw_6L9grx8S',SESSION='BB_SUPABASE_DEV_SESSION_V1',STORE='BB_BACK_SALE_LOCAL_V1',$=id=>document.getElementById(id),esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));let batches=[],products=[],profile=null,lines={},editing=null;const FALLBACK={'KIR3-2L':'KIR-2L-GRP','KIRB-2L':'KIR-2L-GRP','KIR0-830':'KIR-830-GRP','KIR3-830':'KIR-830-GRP','KIRP-Y135':'KIR-135-GRP','KIRS-Y135':'KIR-135-GRP','KIRV-Y135':'KIR-135-GRP','CH-O220':'CMP-220ML-GRP','CHM-220':'CMP-220ML-GRP','CHP-220':'CMP-220ML-GRP','CHS-220':'CMP-220ML-GRP','CHT-220':'CMP-220ML-GRP'};let groups=new Map(),groupNames=new Map(),units=new Map();const quantity=v=>Math.max(0,Math.floor(Number(v)||0));const normalized=v=>typeof v==='object'?{pcs:quantity(v.pcs),boxes:quantity(v.boxes)}:{pcs:quantity(v),boxes:0};const totalFor=(code,v)=>{let q=normalized(v);return q.pcs+q.boxes*(units.get(code)?.baseQty||1)};async function loadUnit(code){try{let group=groups.get(code.toUpperCase())||FALLBACK[code.toUpperCase()]||null,session=JSON.parse(localStorage.getItem(SESSION)||'null');let res=await fetch(URL+'/rest/v1/rpc/bb_sales_product_selling_units',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_product_code:code,p_group_code:group})}),data=await res.json();if(!res.ok)throw Error(data.message||'Unit lookup failed');let u=(data.units||[]).filter(x=>Number(x.baseQty)>1).sort((a,b)=>(Number(a.sortOrder)||10)-(Number(b.sortOrder)||10))[0];units.set(code,u?{baseQty:Number(u.baseQty),name:u.sellingUnitName||'Box/Batch'}:null);render()}catch(e){console.warn('Unit lookup',e)}}const local=()=>{try{return JSON.parse(localStorage.getItem(STORE)||'[]')}catch{return []}};function status(x,bad=false){$('status').textContent=x;$('status').className=bad?'error':''}async function rpc(name){let s=JSON.parse(localStorage.getItem(SESSION)||'null');if(!s?.access_token)throw Error('Sign in to BIG BROTHER first.');if(s.expires_at&&s.expires_at<Date.now()/1000+45){let r=await fetch(URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});if(!r.ok)throw Error('Session expired.');s=await r.json();s.expires_at=Math.floor(Date.now()/1000)+s.expires_in;localStorage.setItem(SESSION,JSON.stringify(s))}let r=await fetch(URL+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:'{}',cache:'no-store'}),d=await r.json();if(!r.ok)throw Error(d.message||'Database unavailable');return d}async function refresh(){status('Loading open batches…');try{let [ref,data,p]=await Promise.all([rpc('bb_stock_references'),rpc('bb_stock_keyin_fast'),rpc('bb_current_access_profile')]);profile=p;groups=new Map((ref.groupMappings||[]).map(x=>[String(x.productCode).toUpperCase(),String(x.groupCode).toUpperCase()]));groupNames=new Map((ref.groupMappings||[]).filter(x=>x.groupCode&&x.groupName).map(x=>[String(x.groupCode).toUpperCase(),String(x.groupName)]));products=(ref.products||[]).map(x=>({code:String(x.productCode||x.code||'').trim(),name:String(x.productName||x.name||'').trim(),unit:String(x.unit||'PCS').trim()||'PCS'})).filter(x=>x.code);batches=(data.openBatches||[]).filter(b=>p.user?.isAdmin||p.locations?.some(l=>l.locationCode===b.locationCode));$('controller').value=p.staff?.staffName||'Unlinked staff';$('batch').innerHTML='<option value="">Select open batch</option>'+batches.map((b,i)=>'<option value="'+i+'">'+esc(b.batchId+' · '+readableBatchDate(b.batchDate)+' · '+(b.locationName||b.locationCode)+' · '+(b.salesmanName||''))+'</option>').join('');showBatch();status('Loaded '+batches.length+' accessible open batches.');}catch(e){status(e.message,true)}}function readableBatchDate(value){
+</style><style id="bb-return-collapse">.bb-return-details{padding:0!important;overflow:visible}.bb-return-details>summary{list-style:none;cursor:pointer;padding:12px;font-weight:800;font-size:17px;color:#173f77;display:flex;align-items:center;justify-content:space-between}.bb-return-details>summary::-webkit-details-marker{display:none}.bb-return-details>summary::after{content:"›";font-size:23px;line-height:1;transform:rotate(0deg);transition:transform .15s}.bb-return-details[open]>summary::after{transform:rotate(90deg)}.bb-return-body{padding:0 12px 12px}</style><style id="bb-prefill-row-reorder">
+/* Product prefill ordering: a dedicated handle keeps quantity inputs and mobile scrolling independent. */
+.bb-drag-handle{float:left;display:grid;place-items:center;width:23px;min-width:23px;height:31px;min-height:31px;padding:0!important;margin:0 5px 0 0!important;border:1px solid #bfd0e2!important;border-radius:7px;background:#f1f6fc!important;color:#42678b!important;font:21px/1 Arial,sans-serif!important;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.bb-drag-handle:active{cursor:grabbing}
+.bb-drag-moving{background:#eaf4ff!important;outline:2px dashed #4a83bc;outline-offset:-2px;position:relative;z-index:2}
+@media(min-width:760px){.bb-drag-handle{width:29px;min-width:29px;height:38px;min-height:38px;margin-right:10px!important}}
+</style></head><body><div class="wrap"><div class="card"><h1>📦 BIG BROTHER</h1><p>Back Sale Receive · Separate report</p><p class="muted">Report preparation only. No stock movement is recorded here.</p><div id="status">Connecting…</div><button id="refresh">↻ Refresh open batches</button></div><div class="row"><button id="tabReceive" class="primary">Back Sale Receive</button><button id="tabHistory">Back Sale History</button></div><main id="receive"><details id="returnInformation" class="card bb-return-details" open><summary>Return Information</summary><div class="bb-return-body"><div class="grid"><div><label>Inventory Controller</label><input id="controller" readonly></div><div><label>Open Batch</label><select id="batch" class="bb-batch-native" aria-label="Open Batch"><option value="">Loading…</option></select><button type="button" id="openBatchPicker" class="bb-batch-trigger" aria-haspopup="dialog" aria-controls="batchPicker"><span id="batchChoice">Select open batch</span><span class="bb-batch-chevron">⌄</span></button></div></div><div id="batchInfo" class="muted"></div><div id="batchPicker" class="bb-batch-overlay hidden" role="dialog" aria-modal="true" aria-label="Select open batch"><div class="bb-batch-panel"><div class="bb-batch-head"><b>Select Open Batch</b><button id="closeBatchPicker" type="button" aria-label="Close batch list">×</button></div><input id="batchSearch" type="search" placeholder="Search batch, location, salesperson or date" autocomplete="off"><div id="batchPickerList" class="bb-batch-results"></div></div></div></div></details><div class="card"><h2>Returned Products</h2><button class="primary" id="add">+ Add Product</button><div id="picker" class="picker hidden"><div class="pickerPanel"><div class="pickerHead"><b>Select Product from Batch</b><button id="closePicker">✕</button></div><div class="pickerList"><input id="searchProduct" placeholder="Search product name or code" autocomplete="off"><div id="productList"></div></div></div></div><div id="items"></div><div id="total"><b>Total: 0 PCS</b></div><div class="row" style="margin-top:15px"><button id="clear">Clear</button><button class="primary" id="save">Save Back Sale Report</button></div></div></main><main id="history" class="card hidden"><h2>Back Sale History</h2><p class="muted">Saved only on this browser/device. Clearing browser data removes this history.</p><div id="records"></div></main></div><script>(()=>{'use strict';const URL='https://sjfhlaclgmkwwofzstok.supabase.co',KEY='sb_publishable_w762jR65CWwlO30fKQsYOw_6L9grx8S',SESSION='BB_SUPABASE_DEV_SESSION_V1',STORE='BB_BACK_SALE_LOCAL_V1',$=id=>document.getElementById(id),esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));let batches=[],products=[],profile=null,lines={},editing=null;const FALLBACK={'KIR3-2L':'KIR-2L-GRP','KIRB-2L':'KIR-2L-GRP','KIR0-830':'KIR-830-GRP','KIR3-830':'KIR-830-GRP','KIRP-Y135':'KIR-135-GRP','KIRS-Y135':'KIR-135-GRP','KIRV-Y135':'KIR-135-GRP','CH-O220':'CMP-220ML-GRP','CHM-220':'CMP-220ML-GRP','CHP-220':'CMP-220ML-GRP','CHS-220':'CMP-220ML-GRP','CHT-220':'CMP-220ML-GRP'};let groups=new Map(),groupNames=new Map(),units=new Map();const quantity=v=>Math.max(0,Math.floor(Number(v)||0));const normalized=v=>typeof v==='object'?{pcs:quantity(v.pcs),boxes:quantity(v.boxes)}:{pcs:quantity(v),boxes:0};const totalFor=(code,v)=>{let q=normalized(v);return q.pcs+q.boxes*(units.get(code)?.baseQty||1)};async function loadUnit(code){try{let group=groups.get(code.toUpperCase())||FALLBACK[code.toUpperCase()]||null,session=JSON.parse(localStorage.getItem(SESSION)||'null');let res=await fetch(URL+'/rest/v1/rpc/bb_sales_product_selling_units',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:JSON.stringify({p_product_code:code,p_group_code:group})}),data=await res.json();if(!res.ok)throw Error(data.message||'Unit lookup failed');let u=(data.units||[]).filter(x=>Number(x.baseQty)>1).sort((a,b)=>(Number(a.sortOrder)||10)-(Number(b.sortOrder)||10))[0];units.set(code,u?{baseQty:Number(u.baseQty),name:u.sellingUnitName||'Box/Batch'}:null);render()}catch(e){console.warn('Unit lookup',e)}}const local=()=>{try{return JSON.parse(localStorage.getItem(STORE)||'[]')}catch{return []}};function status(x,bad=false){$('status').textContent=x;$('status').className=bad?'error':''}async function rpc(name){let s=JSON.parse(localStorage.getItem(SESSION)||'null');if(!s?.access_token)throw Error('Sign in to BIG BROTHER first.');if(s.expires_at&&s.expires_at<Date.now()/1000+45){let r=await fetch(URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});if(!r.ok)throw Error('Session expired.');s=await r.json();s.expires_at=Math.floor(Date.now()/1000)+s.expires_in;localStorage.setItem(SESSION,JSON.stringify(s))}let r=await fetch(URL+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:'{}',cache:'no-store'}),d=await r.json();if(!r.ok)throw Error(d.message||'Database unavailable');return d}async function refresh(){status('Loading open batches…');try{let [ref,data,p]=await Promise.all([rpc('bb_stock_references'),rpc('bb_stock_keyin_fast'),rpc('bb_current_access_profile')]);profile=p;groups=new Map((ref.groupMappings||[]).map(x=>[String(x.productCode).toUpperCase(),String(x.groupCode).toUpperCase()]));groupNames=new Map((ref.groupMappings||[]).filter(x=>x.groupCode&&x.groupName).map(x=>[String(x.groupCode).toUpperCase(),String(x.groupName)]));products=(ref.products||[]).map(x=>({code:String(x.productCode||x.code||'').trim(),name:String(x.productName||x.name||'').trim(),unit:String(x.unit||'PCS').trim()||'PCS'})).filter(x=>x.code);batches=(data.openBatches||[]).filter(b=>p.user?.isAdmin||p.locations?.some(l=>l.locationCode===b.locationCode));$('controller').value=p.staff?.staffName||'Unlinked staff';$('batch').innerHTML='<option value="">Select open batch</option>'+batches.map((b,i)=>'<option value="'+i+'">'+esc(b.batchId+' · '+readableBatchDate(b.batchDate)+' · '+(b.locationName||b.locationCode)+' · '+(b.salesmanName||''))+'</option>').join('');showBatch();status('Loaded '+batches.length+' accessible open batches.');}catch(e){status(e.message,true)}}function readableBatchDate(value){
  const s=String(value||'').slice(0,10);
  if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return 'Date unavailable';
  const [year,month,day]=s.split('-');
@@ -132,12 +138,88 @@ function showBatch(){let b=selectedBatch();lines={};render();renderPicker();$('b
  const input=box||piece;
  if(input){input.focus();input.select()}
 }
+
+/* Pointer Events work with a mouse or a single touch. Arrow keys on a focused grip also reorder. */
+function bbEnableReorder(container,getState,setState,redraw){
+  let drag=null,frame=0;
+  const rows=()=>Array.from(container.children).filter(el=>el.hasAttribute('data-bb-reorder'));
+  function commit(codes){
+    const old=getState(),next={};
+    for(const code of codes)if(Object.prototype.hasOwnProperty.call(old,code))next[code]=old[code];
+    setState(next);
+    redraw();
+  }
+  function place(){
+    if(!drag)return;
+    const hit=document.elementFromPoint(drag.x,drag.y)?.closest('[data-bb-reorder]');
+    if(!hit||hit.parentElement!==container||hit===drag.row)return;
+    const bounds=hit.getBoundingClientRect();
+    const before=drag.y<bounds.top+bounds.height/2;
+    container.insertBefore(drag.row,before?hit:hit.nextSibling);
+    drag.moved=true;
+  }
+  function scrollTick(){
+    if(!drag)return;
+    const edge=75,h=window.innerHeight;
+    const delta=drag.y<edge?-11:drag.y>h-edge?11:0;
+    if(delta)window.scrollBy(0,delta);
+    place();
+    frame=requestAnimationFrame(scrollTick);
+  }
+  function finish(){
+    if(!drag)return;
+    const done=drag;
+    drag=null;
+    cancelAnimationFrame(frame);
+    done.row.classList.remove('bb-drag-moving');
+    try{if(done.handle.hasPointerCapture(done.id))done.handle.releasePointerCapture(done.id)}catch(_){}
+    if(done.moved)commit(rows().map(row=>row.dataset.bbReorder));
+  }
+  container.addEventListener('pointerdown',event=>{
+    const initial=event.target.closest('.bb-drag-handle');
+    if(!initial||!container.contains(initial)||(event.pointerType==='mouse'&&event.button!==0))return;
+    const code=initial.closest('[data-bb-reorder]')?.dataset.bbReorder;
+    if(!code)return;
+    event.preventDefault();
+    // Flush an unsaved quantity on blur before sorting the rows.
+    if(container.contains(document.activeElement)&&document.activeElement.matches('input'))document.activeElement.blur();
+    const row=rows().find(el=>el.dataset.bbReorder===code),handle=row?.querySelector('.bb-drag-handle');
+    if(!handle)return;
+    drag={id:event.pointerId,row,handle,x:event.clientX,y:event.clientY,moved:false};
+    row.classList.add('bb-drag-moving');
+    try{handle.setPointerCapture(event.pointerId)}catch(_){}
+    frame=requestAnimationFrame(scrollTick);
+  });
+  container.addEventListener('pointermove',event=>{
+    if(!drag||event.pointerId!==drag.id)return;
+    drag.x=event.clientX;drag.y=event.clientY;
+    place();
+  });
+  ['pointerup','pointercancel','lostpointercapture'].forEach(type=>container.addEventListener(type,event=>{
+    if(drag&&event.pointerId===drag.id)finish();
+  }));
+  container.addEventListener('keydown',event=>{
+    const grip=event.target.closest('.bb-drag-handle');
+    if(!grip||(event.key!=='ArrowUp'&&event.key!=='ArrowDown'))return;
+    const code=grip.closest('[data-bb-reorder]')?.dataset.bbReorder;
+    const codes=rows().map(el=>el.dataset.bbReorder),i=codes.indexOf(code);
+    const next=i+(event.key==='ArrowUp'?-1:1);
+    if(i<0||next<0||next>=codes.length)return;
+    event.preventDefault();
+    codes.splice(i,1);codes.splice(next,0,code);
+    commit(codes);
+    const moved=rows().find(el=>el.dataset.bbReorder===code);
+    moved?.querySelector('.bb-drag-handle')?.focus();
+  });
+}
+
+bbEnableReorder($('items'),()=>lines,next=>{lines=next},render);
 function render(){
  const entries=Object.entries(lines);
  $('items').innerHTML=entries.map(([code,value],i)=>{
   const product=productByCode(code),q=normalized(value),selling=units.get(code),base=product?.unit||'PCS';
-  return '<div class="item itemgrid">'+
-   '<div class="return-name"><b>'+(i+1)+'. '+esc(product?.name||code)+'</b><small style="display:block;color:#657a90;margin-top:2px">Batch Remaining '+batchRemaining(code)+'</small></div>'+
+  return '<div class="item itemgrid" data-bb-reorder="'+esc(code)+'">'+
+   '<div class="return-name"><button type="button" class="bb-drag-handle" aria-label="Move '+esc(product?.name||code)+'" title="Drag to reorder (or use Up/Down arrows)">⠿</button><b>'+(i+1)+'. '+esc(product?.name||code)+'</b><small style="display:block;color:#657a90;margin-top:2px">Batch Remaining '+batchRemaining(code)+'</small></div>'+
    '<label class="return-source" title="'+(selling?esc(selling.name)+' ×'+selling.baseQty:'No box unit')+'"><span>'+(selling?esc(selling.name)+' ×'+selling.baseQty:'CTN')+'</span><input aria-label="Carton quantity for '+esc(product?.name||code)+'" type="number" min="0" max="'+(selling?Math.max(0,Math.floor(batchRemaining(code)/(selling.baseQty||1))):0)+'" step="1" data-boxes="'+esc(code)+'" value="'+(q.boxes>0?q.boxes:'')+'" '+(selling?'':'disabled')+'></label>'+
    '<label class="return-source"><span>'+esc(base)+'</span><input aria-label="'+esc(base)+' quantity for '+esc(product?.name||code)+'" type="number" min="0" max="'+batchRemaining(code)+'" step="1" data-qty="'+esc(code)+'" value="'+(q.pcs>0?q.pcs:'')+'"></label>'+
    '<b class="return-total">'+totalFor(code,q)+' '+esc(base)+'</b>'+
