@@ -28,11 +28,28 @@ button{border:1px solid #cbd9e7;border-radius:9px;background:#fff;color:var(--na
 .bb-drag-handle:active{cursor:grabbing}
 .bb-drag-moving{background:#eaf4ff!important;outline:2px dashed #4a83bc;outline-offset:-2px;position:relative;z-index:2}
 @media(min-width:760px){.bb-drag-handle{width:29px;min-width:29px;height:38px;min-height:38px;margin-right:10px!important}}
+</style>
+<style id="bb-existing-transfer-style">
+.bb-transfer-mode{margin:13px 0 11px;max-width:520px}
+.bb-transfer-mode label{display:block;margin-bottom:5px;font-size:11px;font-weight:900;color:#173f77}
+.bb-transfer-mode select{width:100%;min-height:42px;border:1px solid #abc8e9;border-radius:9px;padding:9px;background:#fff;color:#173f77;font-weight:800}
+.bb-product-buttons{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+#fillAll{border-color:#89b59b;background:#ebf8f0;color:#246b46}
+#existingTransferPreview{margin:12px 0;border:1px solid #bad7c9;border-radius:10px;background:#f1faf5;padding:11px 13px;color:#18553a;font-size:12px;font-weight:750;line-height:1.5;white-space:pre-line}
+#existingTransfersHistory{margin-bottom:17px;padding:12px;border:1px solid #bfdbd1;background:#f1faf5;border-radius:10px}
+#existingTransfersHistory h3{margin:0 0 8px;font-size:14px;color:#1e5944}
+#existingTransfersHistory .history-item{background:#fff}
+@media(max-width:760px){
+ .bb-product-buttons{display:grid;grid-template-columns:1fr 1fr;width:100%;gap:6px}
+ .bb-product-buttons button{font-size:10px!important;padding:7px 5px!important;min-height:40px}
+ .bb-transfer-mode{max-width:none}
+ #existingTransferPreview{font-size:10px;padding:9px}
+}
 </style></head>
 <body>
 <div class="wrap">
   <section class="card">
-    <div class="top"><div><h1>🔀 BIG BROTHER — Batch Transfer</h1><div class="sub">Planning / prefill only. No physical stock moves until Batch to Salesman saves the new Batch.</div></div><button id="refresh">↻ Refresh Live Batches</button></div>
+    <div class="top"><div><h1>🔀 BIG BROTHER — Batch Transfer</h1><div id="batchTransferLead" class="sub">Planning / prefill only. No physical stock moves until Batch to Salesman saves the new Batch.</div></div><button id="refresh">↻ Refresh Live Batches</button></div>
     <div id="status" class="status">Connecting…</div>
   </section>
   <div class="tabs"><button id="tabTransfer" class="primary">Batch Transfer</button><button id="tabHistory">Transfer History</button></div>
@@ -40,30 +57,35 @@ button{border:1px solid #cbd9e7;border-radius:9px;background:#fff;color:var(--na
   <main id="transfer">
     <section class="card">
       <h2>Transfer Information</h2>
+      <div class="bb-transfer-mode"><label for="transferMode">Destination Type</label>
+        <select id="transferMode"><option value="new">Create New Batch (existing workflow)</option><option value="existing">Transfer to Existing Open Batch · Carry Forward</option></select>
+      </div>
       <div class="grid">
         <div class="field"><label>Inventory Controller</label><input id="controller" readonly></div>
         <div class="field"><label>Source Open Batch</label><select id="sourceBatch"><option value="">Loading…</option></select></div>
         <div class="field"><label>Transfer Date</label><input id="date" type="date"></div>
-        <div class="field"><label>New Salesman</label><select id="salesman"><option value="">Select Salesman</option></select></div>
-        <div class="field"><label>New Driver 1</label><select id="driver1"><option value="">Select Driver 1</option></select></div>
-        <div class="field"><label>New Driver 2 (Optional)</label><select id="driver2"><option value="">No Driver 2</option></select></div>
-        <div class="field"><label>New Batch Location</label><select id="location"><option value="">Select Location</option></select></div>
+        <div class="field" data-new-batch-field><label>New Salesman</label><select id="salesman"><option value="">Select Salesman</option></select></div>
+        <div class="field" data-new-batch-field><label>New Driver 1</label><select id="driver1"><option value="">Select Driver 1</option></select></div>
+        <div class="field" data-new-batch-field><label>New Driver 2 (Optional)</label><select id="driver2"><option value="">No Driver 2</option></select></div>
+        <div class="field" data-new-batch-field><label>New Batch Location</label><select id="location"><option value="">Select Location</option></select></div>
+        <div id="targetBatchField" class="field hidden"><label>Destination Existing Open Batch</label><select id="targetBatch"><option value="">Select Destination Batch</option></select></div>
       </div>
       <div id="sourceInfo" class="source-info">Select an Open Batch to plan a transfer.</div>
     </section>
 
     <section class="card">
-      <div class="products-head"><div><h2 style="margin:0">Transfer Products</h2><div class="sub">Enter total planned Qty only. Purchased / Zero-Cost is decided later in Batch to Salesman.</div></div><button id="add" class="purple">＋ Add Product</button></div>
+      <div class="products-head"><div><h2 style="margin:0">Transfer Products</h2><div id="batchTransferProductsHint" class="sub">Enter total planned Qty only. Purchased / Zero-Cost is decided later in Batch to Salesman.</div></div><div class="bb-product-buttons"><button id="fillAll" class="hidden" type="button">↳ Transfer All Remaining</button><button id="add" class="purple">＋ Add Product</button></div></div>
       <div id="lines" class="lines"><div class="empty">Select a Source Batch first.</div></div>
+      <div id="existingTransferPreview" class="hidden" aria-live="polite"></div>
       <div class="actions" style="margin-top:12px"><button id="clear">Clear</button><button id="save" class="primary">Save Batch Transfer Prefill</button></div>
-      <div class="foot-note">Saving creates a one-time shared prefill and local history only. It does not reserve stock. Final Save in Batch to Salesman always checks the live Source Batch balance again.</div>
+      <div id="batchTransferFootnote" class="foot-note">Saving creates a one-time shared prefill and local history only. It does not reserve stock. Final Save in Batch to Salesman always checks the live Source Batch balance again.</div>
     </section>
   </main>
 
   <main id="history" class="card hidden">
     <h2>Batch Transfer History</h2>
     <div class="sub" style="margin-bottom:10px">History is saved on this browser/device. Editing reuses the same shared prefill ID.</div>
-    <div id="records"></div>
+    <div id="existingTransfersHistory" class="hidden"></div><div id="records"></div>
   </main>
 </div>
 
@@ -77,7 +99,7 @@ button{border:1px solid #cbd9e7;border-radius:9px;background:#fff;color:var(--na
 
 <script>
 (()=>{'use strict';
-const URL='https://sjfhlaclgmkwwofzstok.supabase.co',KEY='sb_publishable_w762jR65CWwlO30fKQsYOw_6L9grx8S',SESSION='BB_SUPABASE_DEV_SESSION_V1',STORE='BB_BATCH_TRANSFER_LOCAL_V1';
+const URL='https://sjfhlaclgmkwwofzstok.supabase.co',KEY='sb_publishable_w762jR65CWwlO30fKQsYOw_6L9grx8S',SESSION='BB_SUPABASE_DEV_SESSION_V1',STORE='BB_BATCH_TRANSFER_LOCAL_V1',ROLLOVER_STORE='BB_BATCH_TRANSFER_EXISTING_LOCAL_V1';
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),str=v=>String(v??'').trim(),num=v=>Math.max(0,Number(v)||0);
 let refs=null,profile=null,batches=[],products=[],staff=[],locations=[],selected={},editing=null,units=new Map();
 
@@ -92,6 +114,58 @@ function batchItemRows(b){return Array.isArray(b?.items)?b.items:(Array.isArray(
 function physical(row){return num(row?.remainingQty!==undefined?row.remainingQty:row?.pendingQty)}
 function productFor(code){return products.find(p=>p.code===code)}
 function sourceBatch(){return batches.find(b=>b.batchId===$('sourceBatch').value)||null}
+function existingMode(){return $('transferMode').value==='existing'}
+function destinationBatch(){return batches.find(b=>b.batchId===$('targetBatch').value)||null}
+let pendingExistingRequest=null;
+function refreshDestinationOptions(){
+  const previous=$('targetBatch').value;
+  const source=sourceBatch();
+  const choices=batches.filter(b=>b.batchId!==source?.batchId);
+  $('targetBatch').innerHTML='<option value="">Select Destination Open Batch</option>'+
+    choices.map(b=>'<option value="'+esc(b.batchId)+'">'+esc(b.batchId+' · '+(b.locationName||b.locationCode)+' · '+(b.salesmanName||'-')+' · Remaining '+num(b.totalRemainingQty)+'</option>').join('');
+  if(choices.some(b=>b.batchId===previous))$('targetBatch').value=previous;
+}
+function syncTransferMode(){
+  const yes=existingMode();
+  document.querySelectorAll('[data-new-batch-field]').forEach(el=>el.classList.toggle('hidden',yes));
+  $('targetBatchField').classList.toggle('hidden',!yes);
+  $('fillAll').classList.toggle('hidden',!yes);
+  $('existingTransferPreview').classList.toggle('hidden',!yes);
+  $('save').textContent=yes?'Transfer Stock to Existing Batch':'Save Batch Transfer Prefill';
+  $('batchTransferLead').textContent=yes
+    ?'Move pending stock directly from an old Open Batch into an existing Open Batch. No warehouse return and no new Batch.'
+    :'Planning / prefill only. No physical stock moves until Batch to Salesman saves the new Batch.';
+  $('batchTransferProductsHint').textContent=yes
+    ?'Purchased / Zero-Cost follows the live Source Batch. Manual quantities use Purchased first.'
+    :'Enter total planned Qty only. Purchased / Zero-Cost is decided later in Batch to Salesman.';
+  $('batchTransferFootnote').textContent=yes
+    ?'This action immediately changes BOTH batch stock records in the cloud, without changing warehouse stock or creating sales/COGS. The old Batch must still pass the normal Close Batch checks.'
+    :'Saving creates a one-time shared prefill and local history only. It does not reserve stock. Final Save in Batch to Salesman always checks the live Source Batch balance again.';
+  refreshDestinationOptions();
+  renderExistingPreview();
+}
+function renderExistingPreview(){
+  const panel=$('existingTransferPreview');
+  if(!panel||!existingMode())return;
+  const b=sourceBatch();
+  if(!b){panel.textContent='Choose the Source Open Batch first.';return}
+  let qty=0,purchased=0,zero=0,valid=true;
+  for(const [code,v] of Object.entries(selected)){
+    const row=batchItemRows(b).find(r=>str(r.productCode)===code);
+    const requested=lineTotal(code,v);
+    if(requested<=0)continue;
+    const available=physical(row),p=num(row?.purchasedPendingQty??row?.purchasedRemainingQty);
+    const z=num(row?.zeroCostPendingQty??row?.zeroCostRemainingQty);
+    if(requested>available+0.000001||requested>p+z+0.000001)valid=false;
+    qty+=requested;purchased+=Math.min(requested,p);zero+=Math.max(requested-p,0);
+  }
+  const target=destinationBatch(),sourceTotal=num(b.totalRemainingQty);
+  panel.textContent=(target?'To '+target.batchId+' · '+(target.salesmanName||'-'):'Select an Existing Open destination Batch.')+
+    '\nSelected '+qty+' units | Purchased '+purchased+' | Zero-Cost '+zero+
+    '\nSource remaining after transfer: '+Math.max(0,sourceTotal-qty)+' units'+
+    (qty>=sourceTotal-0.000001&&sourceTotal>0?' · Ready for normal Close Batch checks':'')+
+    (!valid?'\n⚠ One or more selected quantities exceed the Source Batch stock.':'');
+}
 function lineTotal(code,v){const u=units.get(code),base=u?.baseQty||1;return num(v.pcs)+num(v.boxes)*base}
 
 async function loadUnit(code){if(units.has(code))return;try{const d=await rpc('bb_sales_product_selling_units',{p_product_code:code,p_group_code:null});const u=(d.units||[]).filter(x=>Number(x.baseQty)>1).sort((a,b)=>(Number(a.sortOrder)||10)-(Number(b.sortOrder)||10))[0];units.set(code,u?{baseQty:Number(u.baseQty)||1,name:str(u.sellingUnitName)||'Box'}:null);renderLines()}catch(_){units.set(code,null);renderLines()}}
@@ -106,11 +180,12 @@ function fillTargetOptions(){
 }
 function showSource(){
   const b=sourceBatch();
-  selected={};renderLines();fillTargetOptions();
+  selected={};renderLines();fillTargetOptions();refreshDestinationOptions();
   if(!b){$('sourceInfo').textContent='Select an Open Batch to plan a transfer.';return}
   const rows=batchItemRows(b),p=rows.reduce((a,x)=>a+num(x.purchasedPendingQty!==undefined?x.purchasedPendingQty:x.purchasedRemainingQty),0),z=rows.reduce((a,x)=>a+num(x.zeroCostPendingQty!==undefined?x.zeroCostPendingQty:x.zeroCostRemainingQty),0);
   $('sourceInfo').textContent=b.batchId+' · '+(b.locationName||b.locationCode)+' · '+(b.salesmanName||'-')+' · Remaining '+(p+z)+' (Purchased '+p+(z?' · Zero-Cost '+z:'')+')';
   if(locations.some(x=>x.id===b.locationCode))$('location').value=b.locationCode;
+  renderExistingPreview();
 }
 function renderPicker(){
   const b=sourceBatch();if(!b){$('productList').innerHTML='<div class="empty">Select a Source Batch first.</div>';return}
@@ -197,10 +272,11 @@ bbEnableReorder($('lines'),()=>selected,next=>{selected=next},renderLines);
 function renderLines(){
   const b=sourceBatch(),rows=batchItemRows(b);
   const entries=Object.entries(selected);
-  if(!entries.length){$('lines').innerHTML='<div class="empty">'+(b?'Add products from '+esc(b.batchId)+'.':'Select a Source Batch first.')+'</div>';return}
+  if(!entries.length){$('lines').innerHTML='<div class="empty">'+(b?'Add products from '+esc(b.batchId)+'.':'Select a Source Batch first.')+'</div>';renderExistingPreview();return}
   $('lines').innerHTML=entries.map(([code,v],i)=>{const p=productFor(code)||{},src=rows.find(x=>str(x.productCode)===code)||{},u=units.get(code),total=lineTotal(code,v),max=physical(src);return '<div class="line" data-bb-reorder="'+esc(code)+'"><div class="product-name"><button type="button" class="bb-drag-handle" aria-label="Move '+esc(p.name||src.productName||code)+'" title="Drag to reorder (or use Up/Down arrows)">⠿</button><strong>'+(i+1)+'. '+esc(p.name||src.productName||code)+'</strong><small>'+esc(code)+' · Source remaining '+max+(u?' · '+esc(u.name)+'='+u.baseQty+' '+esc(p.unit||src.unit||'PCS'):'')+'</small></div><div><label>'+(u?esc(u.name):'Boxes')+'</label><input data-code="'+esc(code)+'" data-field="boxes" type="number" min="0" step="1" value="'+num(v.boxes)+'" '+(u?'':'disabled')+'></div><div><label>'+esc(p.unit||src.unit||'PCS')+'</label><input data-code="'+esc(code)+'" data-field="pcs" type="number" min="0" step="1" value="'+num(v.pcs)+'"></div><div class="total">'+total+' / '+max+'</div><button class="remove" data-remove="'+esc(code)+'">×</button></div>'}).join('');
-  $('lines').querySelectorAll('input[data-code]').forEach(input=>input.oninput=()=>{const row=selected[input.dataset.code];if(!row)return;row[input.dataset.field]=num(input.value);const src=rows.find(x=>str(x.productCode)===input.dataset.code),total=lineTotal(input.dataset.code,row),max=physical(src);if(total>max){input.setCustomValidity('Maximum '+max);input.style.borderColor='#c33'}else{input.setCustomValidity('');input.style.borderColor='#cbd9e7'}renderLineTotal(input.closest('.line'),total,max)});
+  $('lines').querySelectorAll('input[data-code]').forEach(input=>input.oninput=()=>{const row=selected[input.dataset.code];if(!row)return;row[input.dataset.field]=num(input.value);const src=rows.find(x=>str(x.productCode)===input.dataset.code),total=lineTotal(input.dataset.code,row),max=physical(src);if(total>max){input.setCustomValidity('Maximum '+max);input.style.borderColor='#c33'}else{input.setCustomValidity('');input.style.borderColor='#cbd9e7'}renderLineTotal(input.closest('.line'),total,max);renderExistingPreview()});
   $('lines').querySelectorAll('[data-remove]').forEach(btn=>btn.onclick=()=>{delete selected[btn.dataset.remove];renderLines()});
+  renderExistingPreview();
 }
 function renderLineTotal(line,total,max){const e=line?.querySelector('.total');if(e){e.textContent=total+' / '+max;e.style.color=total>max?'#b53232':'#13704b'}}
 
@@ -217,13 +293,97 @@ async function refresh(){
     $('sourceBatch').innerHTML='<option value="">Select Source Open Batch</option>'+batches.map(b=>'<option value="'+esc(b.batchId)+'">'+esc(b.batchId+' · '+(b.locationName||b.locationCode)+' · '+(b.salesmanName||'-')+' · Remaining '+Number(b.totalRemainingQty||0))+'</option>').join('');
     if(batches.some(b=>b.batchId===old))$('sourceBatch').value=old;
     $('controller').value=p.staff?.staffName||'Unlinked staff';
-    fillTargetOptions();showSource();
+    fillTargetOptions();showSource();syncTransferMode();
     status('Loaded '+batches.length+' Open Batch'+(batches.length===1?'':'es')+'.');
   }catch(e){status(e.message,true)}
 }
 
-function clearForm(){selected={};editing=null;['sourceBatch','salesman','driver1','driver2','location'].forEach(id=>$(id).value='');$('date').value=today();renderLines();showSource()}
+function clearForm(){selected={};editing=null;['sourceBatch','salesman','driver1','driver2','location','targetBatch'].forEach(id=>$(id).value='');$('date').value=today();renderLines();showSource()}
+
+function fillAllRemaining(){
+  const b=sourceBatch();
+  if(!b)return alert('Select the old Source Open Batch first.');
+  if(!existingMode())return;
+  selected={};
+  for(const row of batchItemRows(b)){
+    const code=str(row.productCode),qty=physical(row);
+    if(qty>0.000001){
+      selected[code]={boxes:0,pcs:qty};
+      if(!units.has(code))loadUnit(code);
+    }
+  }
+  renderLines();
+}
+function existingHistory(){try{return JSON.parse(localStorage.getItem(ROLLOVER_STORE)||'[]')}catch{return []}}
+function renderExistingHistory(){
+  const root=$('existingTransfersHistory'),records=existingHistory();
+  root.classList.toggle('hidden',!records.length);
+  if(!records.length)return;
+  root.innerHTML='<h3>Completed Batch Carry Forwards (this device)</h3>'+
+    records.map(r=>'<div class="history-item"><b>'+esc(r.sourceBatchId)+' → '+esc(r.targetBatchId)+'</b><p>'+
+      esc(new Date(r.created).toLocaleString())+' · '+num(r.transferQty)+' units · '+(r.sourceCleared?'Source cleared':'Source still has pending stock')+
+      ' · Movement '+esc(r.movementId||'')+'</p></div>').join('');
+}
+async function saveExisting(){
+  const source=sourceBatch(),target=destinationBatch();
+  if(!source)return alert('Select Source Open Batch first.');
+  if(!target)return alert('Select Destination Existing Open Batch.');
+  if(source.batchId===target.batchId)return alert('Source and Destination must be different batches.');
+  const date=$('date').value;
+  if(!date)return alert('Choose the transfer date.');
+  const items=[],src=batchItemRows(source);
+  let qty=0,purchased=0,zero=0;
+  for(const [code,v] of Object.entries(selected)){
+    const line=src.find(x=>str(x.productCode)===code),q=lineTotal(code,v);
+    if(q<=0)continue;
+    const available=physical(line),p=num(line?.purchasedPendingQty??line?.purchasedRemainingQty),z=num(line?.zeroCostPendingQty??line?.zeroCostRemainingQty);
+    if(q>available+0.000001||q>p+z+0.000001)return alert((productFor(code)?.name||code)+': cannot transfer more than Source Batch remaining.');
+    items.push({productCode:code,qty:q});
+    qty+=q;purchased+=Math.min(q,p);zero+=Math.max(0,q-p);
+  }
+  if(!items.length)return alert('Add at least one product or press Transfer All Remaining.');
+  const message='TRANSFER PENDING BATCH STOCK\n\nFrom: '+source.batchId+' ('+(source.locationName||source.locationCode)+')'+
+    '\nTo: '+target.batchId+' ('+(target.locationName||target.locationCode)+')'+
+    '\nProducts: '+items.length+'\nTotal Qty: '+qty+' units\nPurchased: '+purchased+' | Zero-Cost: '+zero+
+    '\n\nThis will change both batch stock balances immediately. Warehouse stock stays unchanged; no invoice or COGS entry is created.'+
+    '\nThe old batch must pass the normal Close Batch check before closing.\n\nConfirm transfer?';
+  if(!confirm(message))return;
+  const signature=JSON.stringify({sourceBatchId:source.batchId,targetBatchId:target.batchId,activityDate:date,items});
+  if(!pendingExistingRequest||pendingExistingRequest.signature!==signature)
+    pendingExistingRequest={signature,id:'BB-BATCH-ROLLOVER-'+Date.now()+'-'+Math.random().toString(36).slice(2,9)};
+  const button=$('save');
+  button.disabled=true;
+  status('Transferring live stock to '+target.batchId+'…');
+  try{
+    const result=await rpc('bb_stock_transfer_between_open_batches',{p_payload:{
+      requestId:pendingExistingRequest.id,sourceBatchId:source.batchId,targetBatchId:target.batchId,
+      activityDate:date,items
+    }});
+    if(!result?.success)throw Error(result?.message||'Transfer failed');
+    pendingExistingRequest=null;
+    const record={
+      id:result.requestId,created:new Date().toISOString(),
+      sourceBatchId:source.batchId,targetBatchId:target.batchId,
+      transferQty:num(result.transferQty),sourceCleared:!!result.sourceCleared,
+      movementId:result.movementId,items:result.lines||[]
+    };
+    try{
+      localStorage.setItem(ROLLOVER_STORE,JSON.stringify([record,...existingHistory().filter(x=>x.id!==record.id)].slice(0,100)));
+    }catch(error){console.warn('Completed transfer local receipt unavailable',error)}
+    const notice='Transfer completed: '+source.batchId+' → '+target.batchId+'\n'+
+      'Transferred '+num(result.transferQty)+' units.'+
+      (result.sourceCleared?'\nOld batch is cleared! Review Batch Report and use its normal Close Batch button.':'\nOld batch still has '+num(result.sourceRemainingQty)+' units remaining.');
+    await refresh();
+    showHistory();
+    alert(notice);
+  }catch(error){
+    status('Existing Batch Transfer failed: '+(error?.message||String(error)),true);
+    alert('Stock transfer not confirmed: '+(error?.message||String(error))+'\nYou can retry the same transfer request after checking the batch balances.');
+  }finally{button.disabled=false}
+}
+
 async function save(){
+  if(existingMode())return saveExisting();
   const b=sourceBatch();if(!b)return alert('Select a Source Open Batch.');
   const salesman=$('salesman').value,driver1=$('driver1').value,driver2=$('driver2').value,location=$('location').value,date=$('date').value;
   if(!salesman)return alert('Select the new Salesman.');if(!driver1)return alert('Select Driver 1.');if(driver2&&driver2===driver1)return alert('Driver 2 must be different from Driver 1.');if(!location)return alert('Select the new Batch Location.');if(!date)return alert('Transfer Date is required.');
@@ -240,14 +400,15 @@ async function save(){
 function showTransfer(){$('transfer').classList.remove('hidden');$('history').classList.add('hidden');$('tabTransfer').classList.add('primary');$('tabHistory').classList.remove('primary')}
 function showHistory(){
   $('transfer').classList.add('hidden');$('history').classList.remove('hidden');$('tabTransfer').classList.remove('primary');$('tabHistory').classList.add('primary');
+  renderExistingHistory();
   const list=local();$('records').innerHTML=list.map(r=>'<div class="history-item"><b>'+esc(r.id)+'</b> · '+esc(r.sourceBatchId)+' → New Batch<p>'+esc(r.sourceLocationName||r.sourceLocationCode)+' · To '+esc(r.salesmanName)+' · '+esc(r.locationName)+' · '+r.items.length+' products</p><div class="row"><button data-id="'+esc(r.id)+'" data-action="edit">Edit</button><button data-id="'+esc(r.id)+'" data-action="copy">Copy Report</button><button data-id="'+esc(r.id)+'" data-action="delete">Delete</button></div></div>').join('')||'<div class="empty">No saved Batch Transfer history on this device.</div>';
   $('records').querySelectorAll('button').forEach(btn=>btn.onclick=async()=>{const r=list.find(x=>x.id===btn.dataset.id);if(!r)return;if(btn.dataset.action==='copy'){const text=['🔀 BIG BROTHER — BATCH TRANSFER','Source: '+r.sourceBatchId,'To Salesman: '+r.salesmanName,'Driver 1: '+r.driver1Name+(r.driver2Name?' · Driver 2: '+r.driver2Name:''),'Location: '+r.locationName,'Date: '+r.fields.date,'',...r.items.map((x,i)=>(i+1)+'. '+x.name+': '+x.qty)].join('\n');try{await navigator.clipboard.writeText(text);alert('Report copied!')}catch{prompt('Copy report:',text)}}
     if(btn.dataset.action==='delete'&&confirm('Delete this local history and pending shared Batch Transfer prefill?')){try{await shared('remove',r)}catch(e){return alert(e.message)}localStorage.setItem(STORE,JSON.stringify(list.filter(x=>x.id!==r.id)));showHistory()}
-    if(btn.dataset.action==='edit'){const b=batches.find(x=>x.batchId===r.sourceBatchId);if(!b)return alert('Source Batch is not currently open or accessible.');editing=r.id;showTransfer();$('sourceBatch').value=r.sourceBatchId;showSource();$('date').value=r.fields.date||today();$('location').value=r.fields.location||'';$('salesman').value=r.fields.salesman||'';$('driver1').value=r.fields.driver1||'';$('driver2').value=r.fields.driver2||'';selected=Object.fromEntries((r.items||[]).map(x=>[x.code,{boxes:num(x.boxes),pcs:num(x.pcs??x.qty)}]));for(const x of r.items||[])loadUnit(x.code);renderLines()}
+    if(btn.dataset.action==='edit'){const b=batches.find(x=>x.batchId===r.sourceBatchId);if(!b)return alert('Source Batch is not currently open or accessible.');editing=r.id;$('transferMode').value='new';syncTransferMode();showTransfer();$('sourceBatch').value=r.sourceBatchId;showSource();$('date').value=r.fields.date||today();$('location').value=r.fields.location||'';$('salesman').value=r.fields.salesman||'';$('driver1').value=r.fields.driver1||'';$('driver2').value=r.fields.driver2||'';selected=Object.fromEntries((r.items||[]).map(x=>[x.code,{boxes:num(x.boxes),pcs:num(x.pcs??x.qty)}]));for(const x of r.items||[])loadUnit(x.code);renderLines()}
   });
 }
 
-$('date').value=today();$('refresh').onclick=refresh;$('sourceBatch').onchange=showSource;$('add').onclick=()=>{if(!sourceBatch())return alert('Select Source Open Batch first.');$('search').value='';renderPicker();$('picker').classList.remove('hidden')};$('closePicker').onclick=()=>$('picker').classList.add('hidden');$('picker').onclick=e=>{if(e.target===$('picker'))$('picker').classList.add('hidden')};$('search').oninput=renderPicker;$('clear').onclick=()=>{if(confirm('Clear current Batch Transfer?'))clearForm()};$('save').onclick=save;$('tabTransfer').onclick=showTransfer;$('tabHistory').onclick=showHistory;
+$('date').value=today();$('transferMode').onchange=syncTransferMode;$('targetBatch').onchange=renderExistingPreview;$('fillAll').onclick=fillAllRemaining;$('refresh').onclick=refresh;$('sourceBatch').onchange=showSource;$('add').onclick=()=>{if(!sourceBatch())return alert('Select Source Open Batch first.');$('search').value='';renderPicker();$('picker').classList.remove('hidden')};$('closePicker').onclick=()=>$('picker').classList.add('hidden');$('picker').onclick=e=>{if(e.target===$('picker'))$('picker').classList.add('hidden')};$('search').oninput=renderPicker;$('clear').onclick=()=>{if(confirm('Clear current Batch Transfer?'))clearForm()};$('save').onclick=save;$('tabTransfer').onclick=showTransfer;$('tabHistory').onclick=showHistory;
 refresh();
 })();
 </script>
