@@ -122,7 +122,7 @@ function refreshDestinationOptions(){
   const source=sourceBatch();
   const choices=batches.filter(b=>b.batchId!==source?.batchId);
   $('targetBatch').innerHTML='<option value="">Select Destination Open Batch</option>'+
-    choices.map(b=>'<option value="'+esc(b.batchId)+'">'+esc(b.batchId+' · '+(b.locationName||b.locationCode)+' · '+(b.salesmanName||'-')+' · Remaining '+num(b.totalRemainingQty)+'</option>').join('');
+    choices.map(b=>'<option value="'+esc(b.batchId)+'">'+esc(b.batchId+' · '+(b.locationName||b.locationCode)+' · '+(b.salesmanName||'-')+' · Remaining '+num(b.totalRemainingQty))+'</option>').join('');
   if(choices.some(b=>b.batchId===previous))$('targetBatch').value=previous;
 }
 function syncTransferMode(){
